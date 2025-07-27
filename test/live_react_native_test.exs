@@ -21,7 +21,7 @@ defmodule LiveReactNativeTest do
       assert result.changed == true
     end
 
-        test "handles complex nested assigns" do
+    test "handles complex nested assigns" do
       assigns = %{
         title: "Hello",
         user: %{name: "John", settings: %{theme: "dark"}},
@@ -50,7 +50,7 @@ defmodule LiveReactNativeTest do
       assert result.changed == true
     end
 
-        test "tracks changed assigns efficiently" do
+    test "tracks changed assigns efficiently" do
       # First render - everything changed
       assigns1 = %{
         count: 0,
@@ -120,6 +120,216 @@ defmodule LiveReactNativeTest do
 
       # Entire result should be JSON-serializable for WebSocket transmission
       assert {:ok, _json} = Jason.encode(result)
+    end
+  end
+
+  # NEW TESTS FOR PHASE 2.1A: GRANULAR CHANGE TRACKING
+
+  describe "granular_assigns_diff/2 (Phase 2.1A)" do
+    test "detects granular changes in nested assigns" do
+      old_assigns = %{
+        user: %{name: "John", age: 30},
+        count: 5,
+        settings: %{theme: "light"},
+        __changed__: %{user: true}
+      }
+
+      new_assigns = %{
+        user: %{name: "Jane", age: 30},
+        count: 5,
+        settings: %{theme: "light"},
+        __changed__: %{user: true}
+      }
+
+      result = LiveReactNative.granular_assigns_diff(old_assigns, new_assigns)
+
+      assert result.changed_paths == %{"user.name" => %{old: "John", new: "Jane"}}
+      assert result.unchanged_paths == ["count", "settings"]
+      assert result.structure_changed == false
+    end
+
+    test "detects structural changes vs value changes" do
+      old_assigns = %{
+        user: %{name: "John"},
+        __changed__: %{user: true}
+      }
+
+      new_assigns = %{
+        user: %{name: "John", age: 30},  # Structure changed - added age field
+        __changed__: %{user: true}
+      }
+
+      result = LiveReactNative.granular_assigns_diff(old_assigns, new_assigns)
+
+      assert result.structure_changed == true
+      assert result.changed_paths == %{"user" => %{old: %{name: "John"}, new: %{name: "John", age: 30}}}
+    end
+
+    test "tracks list changes efficiently" do
+      old_assigns = %{
+        items: [%{id: 1, name: "A"}, %{id: 2, name: "B"}],
+        __changed__: %{items: true}
+      }
+
+      new_assigns = %{
+        items: [%{id: 1, name: "A"}, %{id: 2, name: "B"}, %{id: 3, name: "C"}],
+        __changed__: %{items: true}
+      }
+
+      result = LiveReactNative.granular_assigns_diff(old_assigns, new_assigns)
+
+      assert result.list_operations == %{
+        "items" => %{
+          added: [%{id: 3, name: "C"}],
+          removed: [],
+          modified: []
+        }
+      }
+    end
+
+    test "handles deeply nested changes" do
+      old_assigns = %{
+        user: %{
+          profile: %{
+            settings: %{
+              notifications: %{email: true, sms: false}
+            }
+          }
+        },
+        __changed__: %{user: true}
+      }
+
+      new_assigns = %{
+        user: %{
+          profile: %{
+            settings: %{
+              notifications: %{email: true, sms: true}  # Only SMS changed
+            }
+          }
+        },
+        __changed__: %{user: true}
+      }
+
+      result = LiveReactNative.granular_assigns_diff(old_assigns, new_assigns)
+
+      assert result.changed_paths == %{
+        "user.profile.settings.notifications.sms" => %{old: false, new: true}
+      }
+    end
+  end
+
+  describe "assigns_fingerprint/1 (Phase 2.1A)" do
+    test "generates consistent fingerprints for same structure" do
+      assigns1 = %{user: %{name: "John", age: 30}, count: 5}
+      assigns2 = %{user: %{name: "Jane", age: 25}, count: 10}
+
+      fp1 = LiveReactNative.assigns_fingerprint(assigns1)
+      fp2 = LiveReactNative.assigns_fingerprint(assigns2)
+
+      # Same structure should have same fingerprint
+      assert fp1.structure == fp2.structure
+      # Different values should have different data fingerprints
+      refute fp1.data == fp2.data
+    end
+
+    test "detects structural changes" do
+      assigns1 = %{user: %{name: "John"}}
+      assigns2 = %{user: %{name: "John", age: 30}}  # Added age field
+
+      fp1 = LiveReactNative.assigns_fingerprint(assigns1)
+      fp2 = LiveReactNative.assigns_fingerprint(assigns2)
+
+      # Different structure should have different structure fingerprints
+      refute fp1.structure == fp2.structure
+    end
+
+    test "fingerprints are deterministic" do
+      assigns = %{user: %{name: "John", settings: %{theme: "dark"}}}
+
+      fp1 = LiveReactNative.assigns_fingerprint(assigns)
+      fp2 = LiveReactNative.assigns_fingerprint(assigns)
+
+      assert fp1 == fp2
+    end
+  end
+
+  describe "minimal_assigns_diff/2 (Phase 2.1A)" do
+    test "generates minimal diff payload" do
+      old_assigns = %{
+        user: %{name: "John", age: 30},
+        count: 5,
+        settings: %{theme: "light", lang: "en"}
+      }
+
+      new_assigns = %{
+        user: %{name: "Jane", age: 30},  # Only name changed
+        count: 5,                       # Unchanged
+        settings: %{theme: "dark", lang: "en"}  # Only theme changed
+      }
+
+      result = LiveReactNative.minimal_assigns_diff(old_assigns, new_assigns)
+
+      # Should only include changed values, not unchanged ones
+      assert result.diff == %{
+        "user.name" => "Jane",
+        "settings.theme" => "dark"
+      }
+
+      assert result.operations == [:set, :set]
+      assert result.payload_size < Jason.encode!(new_assigns) |> byte_size()
+    end
+
+    test "handles list operations efficiently" do
+      old_assigns = %{items: [%{id: 1}, %{id: 2}]}
+      new_assigns = %{items: [%{id: 1}, %{id: 2}, %{id: 3}]}  # Added item
+
+      result = LiveReactNative.minimal_assigns_diff(old_assigns, new_assigns)
+
+      assert result.diff == %{"items" => %{append: [%{id: 3}]}}
+      assert result.operations == [:list_append]
+    end
+
+    test "removes keys when assigns are deleted" do
+      old_assigns = %{user: %{name: "John"}, temp_data: "delete_me"}
+      new_assigns = %{user: %{name: "John"}}  # temp_data removed
+
+      result = LiveReactNative.minimal_assigns_diff(old_assigns, new_assigns)
+
+      assert result.diff == %{"temp_data" => :__delete__}
+      assert result.operations == [:delete]
+    end
+  end
+
+  describe "change_batching/1 (Phase 2.1A)" do
+    test "batches multiple rapid changes" do
+      changes = [
+        {:assign, :count, 1},
+        {:assign, :timestamp, ~N[2024-01-01 12:00:00]},
+        {:assign, :status, "active"}
+      ]
+
+      result = LiveReactNative.batch_assigns_changes(changes)
+
+      assert result.batched_assigns == %{
+        count: 1,
+        timestamp: ~N[2024-01-01 12:00:00],
+        status: "active"
+      }
+
+      assert result.batch_id != nil
+      assert result.batch_size == 3
+    end
+
+    test "respects change prioritization" do
+      ui_changes = [{:assign, :loading, false}]
+      data_changes = [{:assign, :background_data, %{}}]
+
+      ui_result = LiveReactNative.batch_assigns_changes(ui_changes, priority: :high)
+      data_result = LiveReactNative.batch_assigns_changes(data_changes, priority: :low)
+
+      assert ui_result.priority == :high
+      assert data_result.priority == :low
+      assert ui_result.timestamp <= data_result.timestamp  # UI processed first
     end
   end
 
