@@ -74,6 +74,65 @@ After completing each section in `IMPLEMENTATION_TODO.md`, document:
 
 ---
 
+## ✅ **Phase 1.2: Analyze & Adapt LiveReact Core**
+
+### 📋 **Implementation Details & Testing**
+
+**What was implemented:**
+- **LiveReactNative Module**: Created mobile-adapted version of LiveReact that returns data structures instead of HTML
+- **Component Name Extraction**: Separates component name (`assigns.name`) from regular props to avoid conflicts
+- **Props/Slots Extraction**: Reused and adapted original LiveReact logic with mobile-specific modifications
+- **Mobile Slots System**: Created `LiveReactNative.Slots` that renders to plain text instead of HTML for JSON serialization
+- **Consistent ID Generation**: Per-component ID generation that reuses IDs for same component in same process
+- **Change Tracking**: Preserved LiveView's efficient change tracking system for mobile context
+- **No SSR**: Completely removed server-side rendering as it's not applicable to mobile apps
+
+**Testing verification:**
+```bash
+✅ mix test test/live_react_native_test.exs  # 10/10 LiveReactNative tests passing
+✅ mix test                                 # 23/23 total tests (including existing LiveReact)
+```
+
+### ⚠️ **Critical Gotchas & Future Reference**
+
+1. **Component Name vs Props Conflict**:
+   - **ISSUE**: Key named "name" serves dual purposes - component name AND potential prop
+   - **SOLUTION**: Extract component name first, then remove it from assigns before prop extraction
+   - **FOOTGUN**: Don't let component name leak into props or it breaks React Native integration
+
+2. **Separate Normalization Functions**:
+   - **ISSUE**: `extract_props/1` standalone function vs `react_native/1` context need different "name" handling
+   - **SOLUTION**: Created `normalize_key_for_extraction/2` that doesn't treat "name" as special
+   - **PATTERN**: Standalone utility functions vs context-specific functions may need different rules
+
+3. **Change Tracking Edge Cases**:
+   - **ISSUE**: `key_changed?/2` must handle missing `__changed__` key gracefully
+   - **SOLUTION**: Added catch-all clause that defaults to `true` for missing change tracking
+   - **FOOTGUN**: Missing `__changed__` key can cause function clause errors
+
+4. **Mobile Slot Rendering**:
+   - **DECISION**: Render slots to plain text instead of HTML for JSON serialization
+   - **LIMITATION**: Only supports default slot (inner_block), no named slots yet
+   - **FUTURE**: May need to expand slot support based on React Native children patterns
+
+5. **ID Generation Strategy**:
+   - **REQUIREMENT**: Same component must get same ID in same process (for React Native reconciliation)
+   - **IMPLEMENTATION**: Process-local cache of component name → ID mappings
+   - **CONSIDERATION**: Process memory grows with unique component names (acceptable for mobile app lifecycle)
+
+6. **Data Structure Design**:
+   - **OUTPUT**: Returns map with `%{component_name, id, props, slots, props_changed?, slots_changed?}`
+   - **SERIALIZATION**: Entire output must be JSON-serializable for Phoenix Channel transmission
+   - **FUTURE**: This structure will be sent over WebSocket to React Native client
+
+### 🎯 **Ready for Phase 1.3**
+- Mobile-adapted LiveView API complete and tested
+- Data structures designed for channel transmission
+- Zero breaking changes to existing web LiveReact
+- Clear separation between web (HTML) and mobile (data) rendering paths
+
+---
+
 ## 🔄 **Template for Future Phases**
 
 ### ✅ **Phase X.Y: [Phase Name]**
