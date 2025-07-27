@@ -8,11 +8,13 @@ Instead of bypassing LiveView entirely, **LiveReact Native acts as a mobile "ren
 
 ### 🧠 Core Insight
 
-The genius of `live_react` is that it turns LiveView into a **React component orchestrator**. LiveReact Native extends this concept:
+LiveReact Native simplifies the architecture: **LiveView becomes a pure state management service**. No HTML rendering needed!
 
-- **Same LiveView backend** manages state and logic
-- **Same component props/events** system
-- **Different renderer**: React Native instead of DOM
+- **LiveView backend**: Handles events, updates assigns, sends JSON over WebSocket
+- **React Native app**: Receives assigns data, renders UI natively on device
+- **WebSocket bridge**: Real-time data synchronization between server and mobile
+
+**Result**: Same LiveView patterns, native mobile performance, zero HTML complexity.
 - **Same developer experience**: Write LiveView, get mobile apps
 
 ## 🏗 Architecture

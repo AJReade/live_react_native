@@ -3,12 +3,42 @@ import { ReactNode } from 'react';
 // LiveView Connection Types
 export interface LiveViewOptions {
   url: string;
-  path: string;
+  path?: string;
   params?: Record<string, any>;
   connect?: boolean;
   reconnectOnError?: boolean;
-  reconnectDelay?: number;
+  reconnectDelay?: (tries: number) => number;
   maxReconnectAttempts?: number;
+}
+
+// LiveView Channel Join/Leave Options
+export interface LiveViewJoinOptions {
+  onJoin?: (response: any) => void;
+  onError?: (error: any) => void;
+}
+
+export interface LiveViewLeaveOptions {
+  onLeave?: () => void;
+}
+
+// Event Push Options
+export interface PushEventOptions {
+  onSuccess?: (response: any) => void;
+  onError?: (error: any) => void;
+}
+
+// Connection State
+export interface ConnectionState {
+  connected: boolean;
+  connecting: boolean;
+  error: Error | null;
+  reconnectAttempt: number;
+}
+
+// LiveView Assigns Update (from backend)
+export interface LiveViewAssignsUpdate {
+  assigns: Record<string, any>;
+  changed: boolean;
 }
 
 export interface LiveViewState {

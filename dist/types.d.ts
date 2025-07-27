@@ -1,12 +1,37 @@
 import { ReactNode } from 'react';
 export interface LiveViewOptions {
     url: string;
-    path: string;
+    path?: string;
     params?: Record<string, any>;
     connect?: boolean;
     reconnectOnError?: boolean;
-    reconnectDelay?: number;
+    reconnectDelay?: (tries: number) => number;
     maxReconnectAttempts?: number;
+}
+export interface LiveViewJoinOptions {
+    onJoin?: (response: any) => void;
+    onError?: (error: any) => void;
+}
+export interface LiveViewLeaveOptions {
+    onLeave?: () => void;
+}
+export interface PushEventOptions {
+    onSuccess?: (response: any) => void;
+    onError?: (error: any) => void;
+}
+export interface ConnectionState {
+    connected: boolean;
+    connecting: boolean;
+    error: Error | null;
+    reconnectAttempt: number;
+}
+export interface LiveReactNativeUpdate {
+    component_name: string;
+    id: string;
+    props: Record<string, any>;
+    slots: Record<string, any>;
+    props_changed?: boolean;
+    slots_changed?: boolean;
 }
 export interface LiveViewState {
     assigns: Record<string, any>;

@@ -1,294 +1,212 @@
-# 🧬 LiveReact Native - Implementation TODO
+# LiveReact Native Implementation Plan
 
-## 🧪 Test-Driven Development Approach
-
-**🚨 CRITICAL: Every implementation step MUST start with tests first!**
-
-### TDD Workflow for Each Task:
-1. **RED**: Write failing tests that specify the expected behavior
-2. **GREEN**: Write minimal code to make tests pass
-3. **REFACTOR**: Clean up code while keeping tests green
-4. **REPEAT**: Continue with next test case
-
-### Test Categories:
-- **Unit Tests**: Individual functions and components
-- **Integration Tests**: LiveView ↔ React Native communication
-- **E2E Tests**: Full user scenarios in example app
-- **Performance Tests**: Memory, rendering, network efficiency
-
-## 📝 Documentation Rules
-
-**🚨 AFTER COMPLETING EACH SECTION: Document in [`IMPLEMENTATION_NOTES.md`](./IMPLEMENTATION_NOTES.md)**
-
-Required for every completed phase:
-- **What was implemented** (technical details)
-- **How it was tested** (verification commands)
-- **Critical gotchas** (footguns and future reference warnings)
-- **Lessons learned** (patterns and conventions established)
+**Rules for each phase:**
+- Always start with TESTS FIRST (TDD approach)
+- Document implementation details in `IMPLEMENTATION_NOTES.md` after each section
+- Document any "gotchas" or technical challenges discovered
+- Mark phases as ✅ COMPLETE when fully tested and documented
 
 ---
 
-## 🎯 Phase 1: Core Architecture & Foundation
+## ✅ Phase 1: Foundation Setup
 
-### 1.1 Project Structure Setup ✅ COMPLETE
+### ✅ Phase 1.1: Project Structure & Tooling ✅ COMPLETE
+- [x] Set up TypeScript, ESLint, Jest configuration
+- [x] Create basic project structure for React Native integration
+- [x] Install and configure Phoenix dependencies
+- [x] Verify toolchain works with basic tests
 
-- [x] Create new `live_react_native` library structure
-- [x] Set up TypeScript configuration for React Native
-- [x] Create package.json with React Native dependencies
-- [x] Set up build tooling (Metro bundler configuration)
-- [x] Initialize example Expo app for testing
+### ✅ Phase 1.2: Analyze & Adapt LiveReact Core ✅ COMPLETE
+- [x] TESTS FIRST: Write comprehensive tests for `LiveReactNative.serialize_assigns/1`
+- [x] TESTS FIRST: Write tests for assigns extraction and JSON serialization
+- [x] Create `LiveReactNative` module (Elixir) - pure state management
+- [x] Implement assigns extraction (filter Phoenix internals)
+- [x] Implement JSON serialization for mobile transmission
+- [x] Remove all SSR and HTML rendering logic
+- [x] **VERIFY**: All Elixir tests pass for core state management
 
-**📋 Detailed notes documented in [`IMPLEMENTATION_NOTES.md`](./IMPLEMENTATION_NOTES.md#-phase-11-project-structure-setup)**
-
-### 1.2 Analyze & Adapt LiveReact Core ✅ COMPLETE
-- [x] **TESTS FIRST**: Write tests for expected Elixir API behavior
-- [x] Study existing `lib/live_react.ex` component system
-- [x] Identify which Elixir code can be reused vs needs adaptation
-- [x] Remove SSR-related code (not needed for mobile)
-- [x] Adapt prop/slot extraction logic for mobile context
-- [x] Create mobile-specific LiveView component helper
-- [x] **VERIFY**: All Elixir API tests pass
-
-**📋 Detailed notes documented in [`IMPLEMENTATION_NOTES.md`](./IMPLEMENTATION_NOTES.md#-phase-12-analyze--adapt-livereact-core)**
-
-### 1.3 Phoenix Channel Protocol Implementation
-- [ ] **TESTS FIRST**: Write tests for WebSocket connection lifecycle
-- [ ] **TESTS FIRST**: Write tests for channel message parsing
-- [ ] **TESTS FIRST**: Write tests for error scenarios and reconnection
-- [ ] Research Phoenix Channel JavaScript client library
-- [ ] Implement basic WebSocket connection to Phoenix
-- [ ] Handle Phoenix Channel join/leave lifecycle
-- [ ] Implement channel message parsing (mount, update, events)
-- [ ] Add error handling and reconnection logic
-- [ ] **VERIFY**: All channel protocol tests pass
+### ✅ Phase 1.3: Phoenix Channel Protocol Implementation ✅ COMPLETE
+- [x] TESTS FIRST: Write tests for `LiveViewChannel` connection management
+- [x] TESTS FIRST: Write tests for `joinLiveView`, `leaveLiveView`, `pushEvent`
+- [x] TESTS FIRST: Write tests for `onAssignsUpdate` subscription system
+- [x] Create `LiveViewChannel` class (TypeScript) for Phoenix communication
+- [x] Implement WebSocket connection with exponential backoff reconnection
+- [x] Implement channel join/leave with proper error handling
+- [x] Implement `pushEvent` for client-server communication
+- [x] Implement `onAssignsUpdate` for server-client assigns updates
+- [x] **VERIFY**: All JavaScript/TypeScript tests pass for channel communication
 
 ---
 
-## 🎯 Phase 2: React Native LiveView Client
+## Phase 2: Core React Native Integration
 
-### 2.1 Core LiveView Hook
-- [ ] **TESTS FIRST**: Write tests for `useLiveView` hook behavior
-- [ ] **TESTS FIRST**: Write tests for LiveView mount/update lifecycle
-- [ ] **TESTS FIRST**: Write tests for `pushEvent`/`pushEventTo` functionality
-- [ ] **TESTS FIRST**: Write tests for `handleEvent` subscription system
-- [ ] Create `useLiveView(path, params)` hook
-- [ ] Handle LiveView mount protocol
-- [ ] Parse and manage assigns state
-- [ ] Implement `pushEvent` functionality
-- [ ] Implement `pushEventTo` functionality
+### Phase 2.1: Core LiveView Hook + **React Native Update Optimization Strategy**
+
+**KEY INSIGHT**: LiveView = Pure State Service (no render functions needed!)
+Mobile app handles all UI rendering.
+
+**React Native Update Optimization Strategy**:
+Combine Phoenix LiveView's change tracking with React Native's reconciliation for maximum efficiency.
+
+#### **2.1A: LiveView Change Tracking (Server-Side)**
+- [ ] TESTS FIRST: Write tests for granular assigns change detection
+- [ ] TESTS FIRST: Write tests for assigns fingerprinting system
+- [ ] TESTS FIRST: Write tests for minimal diff generation
+- [ ] Implement **granular change tracking** - track which specific assigns changed (not just "something changed")
+- [ ] Implement **assigns fingerprinting** - detect when assigns structure changes vs just values
+- [ ] Implement **minimal diff generation** - send only changed assigns paths and values
+- [ ] Add **change batching** - batch multiple rapid changes into single updates
+- [ ] Add **change prioritization** - critical UI updates vs background data updates
+
+#### **2.1B: React Native Smart Reconciliation (Client-Side)**
+- [ ] TESTS FIRST: Write tests for `useLiveView` hook with efficient re-rendering
+- [ ] TESTS FIRST: Write tests for assigns change detection and memoization
+- [ ] TESTS FIRST: Write tests for `pushEvent` functionality
+- [ ] TESTS FIRST: Write tests for assigns state management with reconciliation optimization
+- [ ] Create `useLiveView(path, params)` hook with **smart reconciliation**
+- [ ] Handle LiveView mount protocol (receive initial assigns)
+- [ ] Implement **assigns change detection** - only trigger re-renders for actually changed assigns
+- [ ] Implement **shallow comparison optimization** - avoid deep assigns comparisons where possible
+- [ ] Implement **memoization strategy** - cache expensive computed values from assigns
+- [ ] Parse and manage assigns state updates with **React reconciliation optimization**
+- [ ] Implement `pushEvent` functionality for sending events to server
+- [ ] Add assigns subscription system for state changes with **batched updates**
+- [ ] Add cleanup and unmount handling
 - [ ] Add `handleEvent` subscription system
 - [ ] Add `removeHandleEvent` cleanup
-- [ ] **VERIFY**: All LiveView hook tests pass
 
-### 2.2 Component Registry System
-- [ ] **TESTS FIRST**: Write tests for component registration API
-- [ ] **TESTS FIRST**: Write tests for component name mapping
-- [ ] **TESTS FIRST**: Write tests for component loading and error scenarios
-- [ ] Create component registration mechanism
-- [ ] Build component name → React Native component mapping
-- [ ] Handle dynamic component loading
-- [ ] Add component prop validation
-- [ ] Implement error boundaries for component failures
+#### **2.1C: Advanced Update Strategies**
+- [ ] TESTS FIRST: Write tests for list update optimization (keys, append/prepend)
+- [ ] TESTS FIRST: Write tests for component identity preservation across updates
+- [ ] TESTS FIRST: Write tests for selective component updates
+- [ ] Implement **React Native list optimization** - efficient adds/removes/reorders using keys
+- [ ] Implement **component identity preservation** - maintain component state across assigns updates
+- [ ] Implement **selective component updates** - only update components whose relevant assigns changed
+- [ ] Add **update debouncing** - prevent excessive re-renders from rapid assigns changes
+- [ ] Add **render interruption** - pause expensive renders for higher priority updates (React Concurrent Mode concepts)
+
+#### **2.1D: Performance Monitoring & Debugging**
+- [ ] TESTS FIRST: Write tests for performance monitoring hooks
+- [ ] Add **assigns diff logging** - track what changed and why components re-rendered
+- [ ] Add **performance profiling hooks** - measure time spent in different update phases
+- [ ] Add **update visualization** - development tools to visualize assigns flow and component updates
+- [ ] Add **memory leak detection** - ensure assigns and subscriptions are properly cleaned up
+
+**ARCHITECTURE**: LiveView = Pure State Service. React Native = Pure UI Layer. WebSocket = Data Bridge.
+**OPTIMIZATION**: Combine LiveView's server-side change tracking with React Native's client-side reconciliation.
+
+- [ ] **VERIFY**: All LiveView hook tests pass
+- [ ] **VERIFY**: Update performance is measurably improved vs naive approaches
+- [ ] **VERIFY**: Memory usage remains stable under load
+- [ ] **VERIFY**: No unnecessary re-renders occur
+
+### Phase 2.2: Component Registry System
+- [ ] TESTS FIRST: Write tests for component registration and lookup
+- [ ] TESTS FIRST: Write tests for component lifecycle management
+- [ ] TESTS FIRST: Write tests for component error boundaries
+- [ ] Create component registry for mapping LiveView assigns to React Native components
+- [ ] Implement component registration system
+- [ ] Add component lifecycle management (mount, update, unmount)
+- [ ] Add error boundaries for component failures
 - [ ] **VERIFY**: All component registry tests pass
 
-### 2.3 Context & Provider System
-- [ ] **TESTS FIRST**: Write tests for context provider/consumer behavior
-- [ ] **TESTS FIRST**: Write tests for context update efficiency
-- [ ] Create `LiveReactProvider` context
-- [ ] Pass LiveView functions through context
-- [ ] Implement `useLiveReact()` hook for accessing context
-- [ ] Handle context updates and re-renders efficiently
-- [ ] **VERIFY**: All context system tests pass
+---
+
+## Phase 3: Advanced Features
+
+### Phase 3.1: LiveComponent Wrapper
+- [ ] TESTS FIRST: Write tests for LiveComponent React Native wrapper
+- [ ] TESTS FIRST: Write tests for assigns subscription and prop mapping
+- [ ] TESTS FIRST: Write tests for LiveComponent lifecycle events
+- [ ] Create `LiveComponent` wrapper for React Native components
+- [ ] Map LiveView assigns to React Native component props
+- [ ] Add assigns change detection and re-rendering optimization
+- [ ] Handle LiveComponent mount/update/unmount lifecycle
+- [ ] Add LiveComponent event handling (`pushEventTo`)
+- [ ] **VERIFY**: All LiveComponent tests pass
+
+### Phase 3.2: Event System
+- [ ] TESTS FIRST: Write tests for comprehensive event handling
+- [ ] TESTS FIRST: Write tests for form input handling
+- [ ] TESTS FIRST: Write tests for end-to-end assigns flow
+- [ ] Implement comprehensive `pushEvent` system
+- [ ] Add form input handling and validation
+- [ ] Add client-side validation with server-side assigns updates
+- [ ] Create end-to-end assigns flow tests
+- [ ] **VERIFY**: All event system tests pass
+
+### Phase 3.3: File Upload Support
+- [ ] TESTS FIRST: Write tests for React Native file upload integration
+- [ ] TESTS FIRST: Write tests for upload progress tracking
+- [ ] TESTS FIRST: Write tests for upload cancellation and retry
+- [ ] Adapt LiveView uploads for React Native (use react-native-document-picker, etc.)
+- [ ] Implement upload progress tracking
+- [ ] Add upload cancellation and retry logic
+- [ ] **VERIFY**: All upload tests pass
 
 ---
 
-## 🎯 Phase 3: Component Integration
+## Phase 4: Advanced Mobile Features
 
-### 3.1 LiveComponent Wrapper
-- [ ] **TESTS FIRST**: Write tests for `<LiveComponent />` rendering behavior
-- [ ] **TESTS FIRST**: Write tests for prop mapping and lifecycle
-- [ ] **TESTS FIRST**: Write tests for component event handling
-- [ ] Create `<LiveComponent name="..." />` wrapper
-- [ ] Map LiveView props to React Native component props
-- [ ] Handle component lifecycle (mount, update, unmount)
-- [ ] Implement component-level event handling
-- [ ] Add prop change detection and optimization
-- [ ] **VERIFY**: All LiveComponent wrapper tests pass
+### Phase 4.1: Mobile-Specific Optimizations
+- [ ] TESTS FIRST: Write tests for background/foreground state handling
+- [ ] TESTS FIRST: Write tests for network connectivity management
+- [ ] TESTS FIRST: Write tests for offline data synchronization
+- [ ] Implement background/foreground state handling
+- [ ] Add network connectivity detection and management
+- [ ] Create offline data synchronization strategy
+- [ ] Add mobile performance optimizations
+- [ ] **VERIFY**: All mobile optimization tests pass
 
-### 3.2 Event System
-- [ ] **TESTS FIRST**: Write tests for RN → LiveView event translation
-- [ ] **TESTS FIRST**: Write tests for touch/gesture event handling
-- [ ] **TESTS FIRST**: Write tests for form input handling and validation
-- [ ] **TESTS FIRST**: Write end-to-end event flow tests
-- [ ] Translate React Native events to LiveView events
-- [ ] Handle touch/gesture events appropriately
-- [ ] Implement form handling for React Native inputs
-- [ ] Add validation and error display systems
-- [ ] **VERIFY**: Complete event flow works (RN → LiveView → back to RN)
+### Phase 4.2: Platform Integration
+- [ ] TESTS FIRST: Write tests for native navigation integration
+- [ ] TESTS FIRST: Write tests for push notification system
+- [ ] TESTS FIRST: Write tests for deep linking support
+- [ ] Integrate with React Navigation
+- [ ] Add push notification support
+- [ ] Implement deep linking for LiveViews
+- [ ] **VERIFY**: All platform integration tests pass
 
-### 3.3 State Synchronization
-- [ ] **TESTS FIRST**: Write tests for state diffing algorithms
-- [ ] **TESTS FIRST**: Write tests for partial update handling
-- [ ] **TESTS FIRST**: Write tests for re-render optimization
-- [ ] **TESTS FIRST**: Write tests for complex state scenarios
-- [ ] Implement efficient state diffing
-- [ ] Handle partial updates from LiveView
-- [ ] Manage component re-rendering optimization
-- [ ] Add state debugging tools
-- [ ] **VERIFY**: All state synchronization tests pass
+### Phase 4.3: Developer Tools & Debugging
+- [ ] TESTS FIRST: Write tests for development debugging tools
+- [ ] TESTS FIRST: Write tests for performance monitoring
+- [ ] Create React Native debugger integration
+- [ ] Add LiveView inspector for mobile
+- [ ] Implement performance monitoring and profiling
+- [ ] **VERIFY**: All developer tools work correctly
 
 ---
 
-## 🎯 Phase 4: Mobile-Specific Features
+## Phase 5: Production Readiness
 
-### 4.1 File Upload System
-- [ ] **TESTS FIRST**: Write tests for file upload protocol adaptation
-- [ ] **TESTS FIRST**: Write tests for file picker integration
-- [ ] **TESTS FIRST**: Write tests for upload progress handling
-- [ ] **TESTS FIRST**: Write end-to-end upload flow tests
-- [ ] Research React Native file system APIs
-- [ ] Implement file picker integration
-- [ ] Adapt LiveView upload protocol for mobile
-- [ ] Handle file upload progress
-- [ ] Add image/camera capture support
-- [ ] **VERIFY**: Complete upload flow works end-to-end
+### Phase 5.1: Performance & Scaling
+- [ ] TESTS FIRST: Write comprehensive performance tests
+- [ ] TESTS FIRST: Write stress tests for high-frequency updates
+- [ ] TESTS FIRST: Write memory leak detection tests
+- [ ] Optimize for high-frequency updates
+- [ ] Implement memory leak prevention
+- [ ] Add comprehensive error handling and recovery
+- [ ] **VERIFY**: Performance benchmarks meet requirements
 
-### 4.2 Navigation Integration
-- [ ] **TESTS FIRST**: Write tests for React Navigation integration
-- [ ] **TESTS FIRST**: Write tests for LiveView navigation helpers
-- [ ] **TESTS FIRST**: Write tests for deep linking support
-- [ ] **TESTS FIRST**: Write tests for navigation state synchronization
-- [ ] Research React Navigation integration patterns
-- [ ] Create LiveView navigation helpers
-- [ ] Implement deep linking support
-- [ ] Handle navigation state sync with LiveView
-- [ ] Add navigation guards and redirects
-- [ ] **VERIFY**: All navigation integration tests pass
+### Phase 5.2: Documentation & Examples
+- [ ] Create comprehensive API documentation
+- [ ] Build example applications (chat, real-time dashboard, e-commerce)
+- [ ] Write migration guide from web LiveView
+- [ ] Create deployment guides
+- [ ] **VERIFY**: All examples work and documentation is complete
 
-### 4.3 Mobile Lifecycle Management
-- [ ] **TESTS FIRST**: Write tests for app backgrounding/foregrounding
-- [ ] **TESTS FIRST**: Write tests for connection pause/resume logic
-- [ ] **TESTS FIRST**: Write tests for offline event queuing
-- [ ] **TESTS FIRST**: Write tests for reconnection scenarios
-- [ ] **TESTS FIRST**: Write tests for various network conditions
-- [ ] Handle app backgrounding/foregrounding
-- [ ] Implement connection pause/resume logic
-- [ ] Add offline queue for events
-- [ ] Handle reconnection scenarios
-- [ ] **VERIFY**: Robust mobile lifecycle handling under all conditions
+### Phase 5.3: Testing & Quality Assurance
+- [ ] TESTS FIRST: Write integration tests covering full stack
+- [ ] TESTS FIRST: Write end-to-end tests with real Phoenix app
+- [ ] Create comprehensive test suite covering all features
+- [ ] Add continuous integration setup
+- [ ] Perform security audit
+- [ ] **VERIFY**: 100% test coverage and security clearance
 
 ---
 
-## 🎯 Phase 5: Developer Experience
+## Ready for Production! 🚀
 
-### 5.1 Development Tooling
-- [ ] Create development setup scripts
-- [ ] Add hot reload integration
-- [ ] Build component inspector/debugger
-- [ ] Create LiveView state viewer
-- [ ] Add network request debugging
-
-### 5.2 Error Handling & Debugging
-- [ ] Implement comprehensive error boundaries
-- [ ] Add helpful error messages
-- [ ] Create connection status indicators
-- [ ] Build debugging overlays
-- [ ] Add performance monitoring
-
-### 5.3 Documentation & Examples
-- [ ] Write comprehensive API documentation
-- [ ] Create step-by-step setup guide
-- [ ] Build example components library
-- [ ] Create real-world example app
-- [ ] Record video tutorials
-
----
-
-## 🎯 Phase 6: Advanced Features
-
-### 6.1 Performance Optimization
-- [ ] Implement component lazy loading
-- [ ] Add memory management for large lists
-- [ ] Optimize re-render cycles
-- [ ] Add performance profiling tools
-- [ ] Test on various device specs
-
-### 6.2 Platform-Specific Features
-- [ ] Add iOS-specific integrations
-- [ ] Add Android-specific integrations
-- [ ] Implement platform-specific UI patterns
-- [ ] Add native module bridges if needed
-- [ ] Test on both platforms extensively
-
-### 6.3 Production Readiness
-- [ ] Add comprehensive test suite
-- [ ] Implement CI/CD pipeline
-- [ ] Create distribution packages
-- [ ] Add monitoring and analytics
-- [ ] Prepare for app store deployment
-
----
-
-## 🎯 Phase 7: Ecosystem Integration
-
-### 7.1 Third-Party Libraries
-- [ ] Test compatibility with popular RN libraries
-- [ ] Create integration guides for common tools
-- [ ] Add support for state management libraries
-- [ ] Integrate with popular UI component libraries
-
-### 7.2 Community & Adoption
-- [ ] Create community examples and showcases
-- [ ] Build plugin system for extensions
-- [ ] Add migration guides from other solutions
-- [ ] Create contribution guidelines
-- [ ] Establish community support channels
-
----
-
-## 🎯 Success Criteria
-
-### Minimum Viable Product (MVP)
-- [ ] Basic component rendering from LiveView **with tests**
-- [ ] Two-way event communication **with tests**
-- [ ] Simple example app working **with E2E tests**
-- [ ] Documentation for setup
-- [ ] **>80% test coverage for core features**
-
-### Production Ready
-- [ ] Handles all LiveView features **with comprehensive test suite**
-- [ ] Robust error handling and recovery **with failure scenario tests**
-- [ ] Performance optimized **with performance benchmarks**
-- [ ] **>90% test coverage across all modules**
-- [ ] Real-world app examples **with integration tests**
-
-### Ecosystem Success
-- [ ] Community adoption
-- [ ] Third-party integrations
-- [ ] Multiple production apps
-- [ ] Active contributor base
-
----
-
-## 📝 Notes
-
-- **🧪 TDD FIRST**: Every feature starts with failing tests - NO EXCEPTIONS!
-- **📋 DOCUMENT AFTER COMPLETION**: Update [`IMPLEMENTATION_NOTES.md`](./IMPLEMENTATION_NOTES.md) after each section
-- **Red-Green-Refactor**: Follow TDD cycle religiously for all tasks
-- **Test Coverage**: Aim for >90% test coverage before any release
-- **Priority**: Focus on getting basic component rendering + events working first
-- **Performance**: Profile and optimize early and often (with performance tests)
-- **Community**: Engage with LiveView and React Native communities for feedback
-
-### 🚨 TDD Enforcement Rules:
-1. **No implementation without tests first**
-2. **All tests must fail initially (RED phase)**
-3. **Write minimal code to pass tests (GREEN phase)**
-4. **Refactor only when tests are green**
-5. **Every bug fix starts with a failing test that reproduces the bug**
-
-### 📚 Documentation Workflow:
-1. **Complete section tasks** in this TODO
-2. **Document implementation** in [`IMPLEMENTATION_NOTES.md`](./IMPLEMENTATION_NOTES.md)
-3. **Include gotchas & footguns** for future reference
-4. **Update README** if needed
+**ARCHITECTURAL INSIGHT**: LiveView = Pure State Service (no render functions needed!)
+React Native = Pure UI Layer with Smart Reconciliation!
+WebSocket = High-Performance Data Bridge with Change Tracking!

@@ -4,169 +4,174 @@ defmodule LiveReactNativeTest do
 
   alias LiveReactNative
 
-  describe "react_native/1" do
-    test "extracts props from assigns" do
+  describe "serialize_assigns/1" do
+    test "extracts user assigns filtering out Phoenix internals" do
       assigns = %{
-        name: "Counter",
         count: 42,
         step: 1,
+        user: %{name: "John"},
         socket: %Phoenix.LiveView.Socket{},
-        __changed__: %{count: true}
+        __changed__: %{count: true},
+        __given__: %{}
       }
 
-      result = LiveReactNative.react_native(assigns)
+      result = LiveReactNative.serialize_assigns(assigns)
 
-      assert result.component_name == "Counter"
-      assert result.props == %{count: 42, step: 1}
-      assert result.props_changed? == true
+      assert result.assigns == %{count: 42, step: 1, user: %{name: "John"}}
+      assert result.changed == true
     end
 
-    test "handles slots correctly for mobile" do
+        test "handles complex nested assigns" do
       assigns = %{
-        name: "Card",
         title: "Hello",
-        inner_block: [%{__slot__: :inner_block, inner_block: fn -> "Content" end}],
+        user: %{name: "John", settings: %{theme: "dark"}},
+        items: [%{id: 1, name: "Item 1"}],
         socket: %Phoenix.LiveView.Socket{},
         __changed__: %{title: true}
       }
 
-      result = LiveReactNative.react_native(assigns)
+      result = LiveReactNative.serialize_assigns(assigns)
 
-      assert result.component_name == "Card"
-      assert result.props == %{title: "Hello"}
-      # Slots should be JSON-serializable, not HTML
-      assert result.slots == %{default: "Content"}
-      assert is_binary(Jason.encode!(result.slots))
+      assert result.assigns == %{
+        title: "Hello",
+        user: %{name: "John", settings: %{theme: "dark"}},
+        items: [%{id: 1, name: "Item 1"}]
+      }
+      assert is_binary(Jason.encode!(result.assigns))
     end
 
-    test "generates consistent component IDs" do
-      assigns = %{name: "Test", socket: %Phoenix.LiveView.Socket{}}
+    test "handles assigns with no changes tracked" do
+      assigns = %{count: 0, name: "Test"}
 
-      result1 = LiveReactNative.react_native(assigns)
-      result2 = LiveReactNative.react_native(assigns)
+      result = LiveReactNative.serialize_assigns(assigns)
 
-      # Should generate consistent IDs for same component in same process
-      assert result1.id == result2.id
-      assert String.starts_with?(result1.id, "Test-")
+      # When no __changed__ key, should default to changed=true
+      assert result.assigns == %{count: 0, name: "Test"}
+      assert result.changed == true
     end
 
-    test "tracks changed props efficiently" do
+        test "tracks changed assigns efficiently" do
       # First render - everything changed
       assigns1 = %{
-        name: "Counter",
         count: 0,
         step: 1,
         socket: %Phoenix.LiveView.Socket{},
         __changed__: %{count: true, step: true}
       }
 
-      result1 = LiveReactNative.react_native(assigns1)
-      assert result1.props_changed? == true
+      result1 = LiveReactNative.serialize_assigns(assigns1)
+      assert result1.changed == true
 
       # Second render - only count changed
       assigns2 = %{
-        name: "Counter",
         count: 1,
         step: 1,
         socket: %Phoenix.LiveView.Socket{},
         __changed__: %{count: true}
       }
 
-      result2 = LiveReactNative.react_native(assigns2)
-      assert result2.props_changed? == true
-      assert result2.props == %{count: 1, step: 1}
+      result2 = LiveReactNative.serialize_assigns(assigns2)
+      assert result2.changed == true
+      assert result2.assigns == %{count: 1, step: 1}
     end
 
-    test "ignores special LiveView assigns" do
+    test "ignores Phoenix internal assigns" do
       assigns = %{
-        name: "Test",
         count: 42,
+        user_name: "John",
         socket: %Phoenix.LiveView.Socket{},
         __changed__: %{count: true},
-        __given__: %{},
-        id: "custom-id",
-        class: "some-class"
+        __given__: %{}
       }
 
-      result = LiveReactNative.react_native(assigns)
+      result = LiveReactNative.serialize_assigns(assigns)
 
-      # Only actual props should be extracted
-      assert result.props == %{count: 42}
-      # Special assigns should be handled separately
-      assert result.id == "custom-id"
+      # Only user assigns should be included
+      assert result.assigns == %{count: 42, user_name: "John"}
+      # Phoenix internals should be filtered out
+      refute Map.has_key?(result.assigns, :socket)
+      refute Map.has_key?(result.assigns, :__changed__)
+      refute Map.has_key?(result.assigns, :__given__)
     end
 
-    test "does not include SSR data for mobile" do
+    test "never includes server-side rendering data" do
       assigns = %{
-        name: "Test",
         count: 42,
         socket: nil,  # Dead view that would trigger SSR on web
         __changed__: nil
       }
 
-      result = LiveReactNative.react_native(assigns)
+      result = LiveReactNative.serialize_assigns(assigns)
 
-      # Mobile should never have SSR data
+      # Mobile should never have SSR data - just clean assigns
+      assert result.assigns == %{count: 42}
       refute Map.has_key?(result, :ssr_render)
       refute Map.has_key?(result, :html)
     end
 
-    test "returns serializable data structure" do
+    test "returns JSON-serializable data structure" do
       assigns = %{
-        name: "Complex",
         data: %{nested: %{values: [1, 2, 3]}},
         socket: %Phoenix.LiveView.Socket{},
         __changed__: %{data: true}
       }
 
-      result = LiveReactNative.react_native(assigns)
+      result = LiveReactNative.serialize_assigns(assigns)
 
-      # Entire result should be JSON-serializable for channel transmission
+      # Entire result should be JSON-serializable for WebSocket transmission
       assert {:ok, _json} = Jason.encode(result)
     end
   end
 
-  describe "extract_props/1" do
-    test "separates props from special assigns" do
+  describe "extract_user_assigns/1" do
+    test "separates user assigns from Phoenix internals" do
       assigns = %{
-        # Props
+        # User assigns
         count: 42,
         name: "test",
         user_id: 123,
-        # Special assigns that should be ignored
+        data: %{nested: true},
+        # Phoenix internals that should be filtered out
         socket: %{},
         __changed__: %{},
-        __given__: %{},
-        # Slots
-        inner_block: [%{__slot__: :inner_block}]
+        __given__: %{}
       }
 
-      {props, _changed?} = LiveReactNative.extract_props(assigns)
+      {user_assigns, _changed?} = LiveReactNative.extract_user_assigns(assigns)
 
-      assert props == %{count: 42, name: "test", user_id: 123}
+      assert user_assigns == %{count: 42, name: "test", user_id: 123, data: %{nested: true}}
     end
-  end
 
-  describe "extract_slots/1" do
-    test "extracts and renders slots to plain text for mobile" do
-      slot_fun = fn -> "Hello World" end
+    test "handles empty assigns with change tracking" do
+      assigns = %{socket: %{}, __changed__: %{}}
+
+      {user_assigns, changed?} = LiveReactNative.extract_user_assigns(assigns)
+
+      assert user_assigns == %{}
+      assert changed? == false  # Empty __changed__ means nothing changed
+    end
+
+    test "handles assigns with no change tracking" do
+      assigns = %{count: 42}  # No __changed__ key at all
+
+      {user_assigns, changed?} = LiveReactNative.extract_user_assigns(assigns)
+
+      assert user_assigns == %{count: 42}
+      assert changed? == true  # No __changed__ key defaults to true
+    end
+
+    test "preserves all non-Phoenix assigns" do
       assigns = %{
-        inner_block: [%{__slot__: :inner_block, inner_block: slot_fun}],
-        __changed__: %{}
+        title: "Hello",
+        items: [1, 2, 3],
+        settings: %{theme: "dark"},
+        __changed__: %{title: true}
       }
 
-      {slots, _changed?} = LiveReactNative.extract_slots(assigns)
+      {user_assigns, changed?} = LiveReactNative.extract_user_assigns(assigns)
 
-      assert slots == %{default: "Hello World"}
-    end
-
-    test "handles empty slots" do
-      assigns = %{count: 42, __changed__: %{}}
-
-      {slots, changed?} = LiveReactNative.extract_slots(assigns)
-
-      assert slots == %{}
-      assert changed? == false
+      assert user_assigns == %{title: "Hello", items: [1, 2, 3], settings: %{theme: "dark"}}
+      assert changed? == true
     end
   end
 end
