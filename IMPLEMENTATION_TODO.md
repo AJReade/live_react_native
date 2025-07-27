@@ -16,18 +16,29 @@
 - **E2E Tests**: Full user scenarios in example app
 - **Performance Tests**: Memory, rendering, network efficiency
 
+## 📝 Documentation Rules
+
+**🚨 AFTER COMPLETING EACH SECTION: Document in [`IMPLEMENTATION_NOTES.md`](./IMPLEMENTATION_NOTES.md)**
+
+Required for every completed phase:
+- **What was implemented** (technical details)
+- **How it was tested** (verification commands)
+- **Critical gotchas** (footguns and future reference warnings)
+- **Lessons learned** (patterns and conventions established)
+
 ---
 
 ## 🎯 Phase 1: Core Architecture & Foundation
 
-### 1.1 Project Structure Setup
-- [ ] **TESTS FIRST**: Write tests for build/package validation
-- [ ] Create new `live_react_native` library structure
-- [ ] Set up TypeScript configuration for React Native
-- [ ] Create package.json with React Native dependencies
-- [ ] Set up build tooling (Metro bundler configuration)
-- [ ] Initialize example Expo app for testing
-- [ ] **VERIFY**: All setup tests pass
+### 1.1 Project Structure Setup ✅ COMPLETE
+
+- [x] Create new `live_react_native` library structure
+- [x] Set up TypeScript configuration for React Native
+- [x] Create package.json with React Native dependencies
+- [x] Set up build tooling (Metro bundler configuration)
+- [x] Initialize example Expo app for testing
+
+**📋 Detailed notes documented in [`IMPLEMENTATION_NOTES.md`](./IMPLEMENTATION_NOTES.md#-phase-11-project-structure-setup)**
 
 ### 1.2 Analyze & Adapt LiveReact Core
 - [ ] **TESTS FIRST**: Write tests for expected Elixir API behavior
@@ -260,12 +271,12 @@
 ## 📝 Notes
 
 - **🧪 TDD FIRST**: Every feature starts with failing tests - NO EXCEPTIONS!
+- **📋 DOCUMENT AFTER COMPLETION**: Update [`IMPLEMENTATION_NOTES.md`](./IMPLEMENTATION_NOTES.md) after each section
 - **Red-Green-Refactor**: Follow TDD cycle religiously for all tasks
 - **Test Coverage**: Aim for >90% test coverage before any release
 - **Priority**: Focus on getting basic component rendering + events working first
 - **Performance**: Profile and optimize early and often (with performance tests)
 - **Community**: Engage with LiveView and React Native communities for feedback
-- **Documentation**: Keep docs updated as features are built
 
 ### 🚨 TDD Enforcement Rules:
 1. **No implementation without tests first**
@@ -273,3 +284,9 @@
 3. **Write minimal code to pass tests (GREEN phase)**
 4. **Refactor only when tests are green**
 5. **Every bug fix starts with a failing test that reproduces the bug**
+
+### 📚 Documentation Workflow:
+1. **Complete section tasks** in this TODO
+2. **Document implementation** in [`IMPLEMENTATION_NOTES.md`](./IMPLEMENTATION_NOTES.md)
+3. **Include gotchas & footguns** for future reference
+4. **Update README** if needed
