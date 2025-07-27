@@ -8,6 +8,44 @@
 
 ---
 
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    DEVICE (React Native)                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │              LOCAL TEMPLATES & COMPONENTS               │   │
+│  │                                                         │   │
+│  │  <Counter />                                           │   │
+│  │  <ChatMessage />         ◄── All UI logic here         │   │
+│  │  <UserProfile />                                       │   │
+│  │  <FileUpload />                                        │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                    ▲                           │
+│                                    │ assigns only              │
+│                                    │                           │
+└────────────────────────────────────┼───────────────────────────┘
+                                     │
+                              WebSocket (JSON)
+                                     │
+┌────────────────────────────────────▼───────────────────────────┘
+│                 ELIXIR (LiveView Module)                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  def handle_event("increment", _params, socket) do              │
+│    new_count = socket.assigns.count + 1                        │
+│    {:noreply, assign(socket, :count, new_count)}              │
+│  end                                                           │
+│                                                                 │
+│  def handle_event("send_message", %{"text" => text}, socket) do │
+│    # Business logic here                                        │
+│    {:noreply, assign(socket, :messages, new_messages)}        │
+│  end                                                           │
+│                                                                 │
+│  # NO render/1 function needed!                                │
+│  # Just pure state management + event handling                 │
+└─────────────────────────────────────────────────────────────────┘
+
 ## ✅ Phase 1: Foundation Setup
 
 ### ✅ Phase 1.1: Project Structure & Tooling ✅ COMPLETE
@@ -43,7 +81,9 @@
 ### Phase 2.1: Core LiveView Hook + **React Native Update Optimization Strategy**
 
 **KEY INSIGHT**: LiveView = Pure State Service (no render functions needed!)
-Mobile app handles all UI rendering.
+**DEVICE**: React Native handles ALL rendering with local templates/components
+**SERVER**: Only handles events → assigns updates → `{:noreply, socket}`
+**FLOW**: Device templates + pushEvent → Server state + handle_event → Device re-render
 
 **React Native Update Optimization Strategy**:
 Combine Phoenix LiveView's change tracking with React Native's reconciliation for maximum efficiency.

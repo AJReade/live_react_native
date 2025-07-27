@@ -8,11 +8,12 @@ Instead of bypassing LiveView entirely, **LiveReact Native acts as a mobile "ren
 
 ### 🧠 Core Insight
 
-LiveReact Native simplifies the architecture: **LiveView becomes a pure state management service**. No HTML rendering needed!
+**Device-Centric Templates + Server State Management**: LiveReact Native puts templates on the device and keeps state management on the server.
 
-- **LiveView backend**: Handles events, updates assigns, sends JSON over WebSocket
-- **React Native app**: Receives assigns data, renders UI natively on device
-- **WebSocket bridge**: Real-time data synchronization between server and mobile
+- **Templates Live on Device**: All React Native components, layouts, UI logic exist locally
+- **Server is Pure State**: Elixir LiveView modules have NO `render/1` functions - only `handle_event/3`
+- **Standard LiveView Patterns**: Same `{:noreply, assign(socket, ...)}` that developers already know
+- **Data Flow**: Device templates → pushEvent → Server handle_event → assigns → Device re-render
 
 **Result**: Same LiveView patterns, native mobile performance, zero HTML complexity.
 - **Same developer experience**: Write LiveView, get mobile apps

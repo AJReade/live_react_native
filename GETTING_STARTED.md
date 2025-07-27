@@ -6,10 +6,22 @@ LiveReact Native enables you to use the same Phoenix LiveView backend to power b
 
 ## 🧠 **Key Architectural Insight**
 
-**LiveView becomes a pure state management service** - no HTML rendering needed! Your LiveView handles events, updates assigns, and sends JSON data over WebSocket. The React Native app receives this data and renders everything natively on the device.
+**Device-Centric Templates + Server State Management**:
+
+- **Templates Live on Device**: All React Native components, layouts, and UI logic exist locally on the mobile device
+- **Server is Pure State**: Elixir LiveView modules have NO `render/1` functions - only `handle_event/3`, `handle_info/2` for state management
+- **Standard LiveView Patterns**: Same `{:noreply, assign(socket, ...)}` patterns developers already know
+
+**Data Flow**:
+1. **Device**: User interacts with local React Native template
+2. **Device → Server**: `pushEvent('action', params)` via WebSocket
+3. **Server**: `handle_event("action", params, socket)` processes business logic
+4. **Server**: Returns `{:noreply, assign(socket, new_state)}`
+5. **Server → Device**: Sends only assigns as JSON (no HTML!)
+6. **Device**: React Native re-renders local templates with new assigns
 
 ```
-LiveView: State Management ⟷ WebSocket ⟷ React Native: UI Rendering
+Device Templates ⟷ pushEvent/assigns ⟷ Server State Management
 ```
 
 ## 📱 What You'll Build

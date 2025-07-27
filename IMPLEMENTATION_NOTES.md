@@ -201,7 +201,12 @@ After completing each section in `IMPLEMENTATION_TODO.md`, document:
 - Mobile-optimized connection management
 - Comprehensive test coverage for all scenarios
 
-**🧠 ARCHITECTURAL INSIGHT**: LiveView = Pure State Service (no render functions needed!)
+**🧠 ARCHITECTURAL INSIGHT**: Device-Centric Templates + Server State Management
+
+- **Templates Live on Device**: All React Native components exist locally on mobile device
+- **Server is Pure State**: Elixir LiveView modules have NO `render/1` functions - only event handlers
+- **Standard Patterns**: Same `{:noreply, assign(socket, ...)}` patterns developers know
+- **Data Flow**: Device templates → pushEvent → Server handle_event → assigns → Device re-render
 
 **Next: Build React Native hooks and components that consume assigns data!** 📱
 

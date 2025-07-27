@@ -4,9 +4,13 @@
 
 ## 🎯 Core Principle
 
+**Device-Centric Architecture**: Templates and components live entirely on the React Native device. The Elixir server is pure state management - no `render/1` functions, just `handle_event/3` → `{:noreply, assign(socket, ...)}`.
+
 Instead of naively sending entire state trees or re-rendering whole components, we combine:
-- **Server-side**: Phoenix LiveView's sophisticated change tracking and minimal diff generation
-- **Client-side**: React Native's efficient reconciliation and memoization strategies
+- **Server-side**: Phoenix LiveView's sophisticated change tracking and minimal diff generation (assigns only)
+- **Client-side**: React Native's efficient reconciliation and memoization strategies (local templates)
+
+**Flow**: Device templates → pushEvent → Server handle_event → assigns update → Device re-render
 
 This hybrid approach achieves **native-level performance** while maintaining LiveView's simplicity.
 
