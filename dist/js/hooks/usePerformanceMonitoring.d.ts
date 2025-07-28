@@ -1,0 +1,62 @@
+export interface UsePerformanceMonitoringOptions {
+    enableAssignsDiffLogging?: boolean;
+    enableComponentRerenderLogging?: boolean;
+    logLevel?: 'debug' | 'info' | 'warn' | 'error';
+    trackChangePatterns?: boolean;
+    detectRapidChanges?: boolean;
+    rapidChangeThreshold?: number;
+    enablePerformanceProfiling?: boolean;
+    profileRenderPhases?: boolean;
+    trackMovingAverages?: boolean;
+    movingAverageWindow?: number;
+    detectRegressions?: boolean;
+    regressionThreshold?: number;
+    enableUpdateVisualization?: boolean;
+    visualizationFormat?: 'tree' | 'graph' | 'timeline';
+    trackComponentFlow?: boolean;
+    exportForDevTools?: boolean;
+    enableMemoryLeakDetection?: boolean;
+    memoryTrackingInterval?: number;
+    trackSubscriptions?: boolean;
+    trackComponentLifecycle?: boolean;
+    memoryLeakThreshold?: number;
+    provideOptimizationSuggestions?: boolean;
+    enableDevToolsIntegration?: boolean;
+    devToolsPort?: number;
+    enableProductionMonitoring?: boolean;
+    productionSafeMode?: boolean;
+    monitoringOverheadLimit?: number;
+    customLogFormatter?: (data: any) => string;
+    verbosityLevel?: 'minimal' | 'normal' | 'verbose';
+}
+export interface UsePerformanceMonitoringResult {
+    logAssignsDiff: (oldAssigns: any, newAssigns: any) => void;
+    logComponentRerenderReasons: (oldAssigns: any, newAssigns: any, componentDependencies: Record<string, string[]>) => void;
+    getChangePatterns: () => Record<string, any>;
+    startAssignsProfile: () => string;
+    endAssignsProfile: (profileId: string) => any;
+    startProfile: (phase: string) => string;
+    endProfile: (profileId: string) => any;
+    getProfilingSummary: () => any;
+    getPerformanceMetrics: () => any;
+    visualizeAssignsChanges: (oldAssigns: any, newAssigns: any) => any;
+    generateComponentFlowDiagram: (componentUpdates: Record<string, any>) => any;
+    getVisualizationExport: () => any;
+    trackAssignsMemory: (assigns: any) => void;
+    trackSubscription: (id: string, type: string) => void;
+    untrackSubscription: (id: string) => void;
+    trackComponentMount: (componentName: string, props: any) => void;
+    trackComponentUnmount: (componentName: string) => void;
+    getMemoryReport: () => any;
+    getSubscriptionReport: () => any;
+    getLifecycleReport: () => any;
+    getOptimizationSuggestions: () => any[];
+    startDevToolsReporting: () => void;
+    getDevToolsStatus: () => any;
+    getProductionReport: () => any;
+    getMonitoringOverhead: () => number;
+    getEnabledFeatures: () => string[];
+    devToolsConnected?: boolean;
+}
+export declare function usePerformanceMonitoring(options?: UsePerformanceMonitoringOptions): UsePerformanceMonitoringResult;
+//# sourceMappingURL=usePerformanceMonitoring.d.ts.map

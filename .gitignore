@@ -31,3 +31,45 @@ live_react-*.tar
 # LSP elixir
 .elixir_ls/
 .elixir-tools/
+
+
+# LiveReact Native
+# Node dependencies
+/node_modules
+/npm-debug.log
+/yarn-error.log
+
+# Expo
+.expo
+.expo-shared/assets.json
+
+# macOS
+.DS_Store
+
+# Android
+android/.gradle
+android/app/build
+android/build
+*.keystore
+
+# iOS
+ios/Pods
+ios/Podfile.lock
+ios/build
+ios/DerivedData
+*.xcworkspace
+
+# Bundler / Expo Go
+*.jsbundle
+*.expo
+*.apk
+*.ipa
+
+# VSCode
+.vscode
+
+# Misc
+.env
+*.log
+*.tsbuildinfo
+example/node_modules

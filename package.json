@@ -25,8 +25,8 @@
   "author": "LiveReact Native Team",
   "license": "MIT",
   "peerDependencies": {
-    "react": "^18.2.0",
-    "react-native": "^0.73.0"
+    "react": "^18.2.0 || ^19.0.0",
+    "react-native": "^0.73.0 || ^0.79.0"
   },
   "dependencies": {
     "phoenix": "^1.7.10"
