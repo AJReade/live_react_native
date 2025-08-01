@@ -96,16 +96,16 @@ describe('RNCommandHandlers', () => {
   });
 
   describe('Error Resilience', () => {
-    test('gracefully handles missing React Native dependencies', () => {
-      // In test environment, RN dependencies won't be available
-      // The handler should detect this and handle gracefully
+    test('reports React Native dependencies as available (Metro-compatible)', () => {
+      // In Metro bundler compatible mode, dependencies are assumed available
+      // This avoids dynamic require() issues that break React Native bundling
       const deps = handlers.checkDependencies();
 
-      // Most deps should be false in test environment
-      expect(deps['expo-haptics']).toBe(false);
-      expect(deps['@react-navigation/native']).toBe(false);
-      expect(deps['expo-notifications']).toBe(false);
-      expect(deps['react-native']).toBe(false);
+      // In Metro-compatible mode, deps are assumed available
+      expect(deps['expo-haptics']).toBe(true);
+      expect(deps['@react-navigation/native']).toBe(true);
+      expect(deps['expo-notifications']).toBe(true);
+      expect(deps['react-native']).toBe(true);
     });
 
     test('can handle multiple commands in sequence', async () => {

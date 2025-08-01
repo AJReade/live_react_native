@@ -65,6 +65,7 @@ export declare class RNCommandHandlers {
     private handleHideLoading;
     /**
      * Check which React Native dependencies are available
+     * Note: This is a simplified check for Metro bundler compatibility
      */
     checkDependencies(): {
         [key: string]: boolean;

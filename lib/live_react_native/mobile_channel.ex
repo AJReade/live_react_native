@@ -43,7 +43,7 @@ defmodule LiveReactNative.MobileChannel do
   # Registry for tracking LiveView processes per topic
   @registry LiveReactNative.MobileChannel.Registry
 
-  def join("mobile:" <> live_path, params, socket) do
+    def join("mobile:" <> live_path, params, socket) do
     Logger.info("Mobile channel join attempt: #{live_path}")
     Logger.debug("Join params: #{inspect(params)}")
 
@@ -66,7 +66,8 @@ defmodule LiveReactNative.MobileChannel do
 
       Logger.info("Mobile channel joined successfully: #{live_path}")
 
-      {:ok, %{assigns: initial_assigns, live_view_pid: live_view_pid}, socket}
+      # Only send assigns to mobile client - PIDs stay on server side
+      {:ok, %{assigns: initial_assigns}, socket}
     else
       {:error, reason} ->
         Logger.warning("Mobile channel join failed: #{inspect(reason)}")
@@ -187,18 +188,32 @@ defmodule LiveReactNative.MobileChannel do
   end
 
   defp resolve_live_view_module(live_path, params) do
-    # Allow tests to specify the LiveView module directly
-    case params["live_view_module"] do
-      module when is_atom(module) ->
+    dbg("resolve_live_view_module called")
+    dbg(live_path)
+    dbg(params)
+
+        # Allow tests to specify the LiveView module directly
+    result = case params["live_view_module"] do
+      module when is_atom(module) and not is_nil(module) ->
+        dbg("Using module from params: #{inspect(module)}")
         {:ok, module}
 
       _ ->
-        # Map mobile paths to existing LiveView modules
+        dbg("Mapping path to module")
+        # Direct mapping of mobile channel topics to LiveView modules
+        # This is NOT router-based - just direct topic to module mapping
         case live_path do
-          "/live/counter" -> {:ok, ServerWeb.CounterLive}
-          _ -> {:error, "module_not_found"}
+          "/mobile/counter" ->
+            dbg("Found /mobile/counter, returning ServerWeb.MobileCounterLive")
+            {:ok, ServerWeb.MobileCounterLive}
+          _ ->
+            dbg("No match for path: #{live_path}")
+            {:error, "module_not_found for path: #{live_path}"}
         end
     end
+
+    dbg(result)
+    result
   end
 
   defp start_or_get_live_view(live_path, live_view_module, params, socket) do
@@ -218,25 +233,59 @@ defmodule LiveReactNative.MobileChannel do
     end
   end
 
-  defp start_live_view_process(live_path, live_view_module, params, socket, registry_key) do
-    # Create a mock LiveView socket for the mobile context
+    defp start_live_view_process(live_path, live_view_module, params, socket, registry_key) do
+    dbg("start_live_view_process called")
+    dbg(live_path)
+    dbg(live_view_module)
+    dbg(params)
+
+    # Derive router from endpoint module name
+    endpoint_module = socket.endpoint |> Module.split() |> Enum.take(2) |> Module.concat()
+    router = Module.concat(endpoint_module, "Router")
+
+    dbg(endpoint_module)
+    dbg(router)
+
+    # Create a mobile-compatible LiveView socket with minimal required internals
+    # This maintains full LiveView compatibility while staying mobile-focused
     live_view_socket = %Phoenix.LiveView.Socket{
       endpoint: socket.endpoint,
-      router: socket.router,
+      router: router,
       view: live_view_module,
       assigns: %{
+        # Essential LiveView fields that mount/3 expects
         live_action: nil,
         flash: %{},
-        # Pass mobile user context to LiveView
+        # Mobile context that gets passed to LiveView
+        mobile_params: socket.assigns.mobile_params,
         mobile_user_id: socket.assigns.mobile_user_id,
-        mobile_authenticated: true
+        mobile_authenticated: true,
+        # Minimal change tracking - required for LiveView assign/3 function
+        __changed__: %{}
+      },
+      # Minimal private state for LiveView compatibility
+      private: %{
+        connect_info: %{},
+        connect_params: params
       }
     }
 
     try do
+      dbg("About to call mount function")
+      dbg(live_view_module)
+      dbg("Is module nil? #{is_nil(live_view_module)}")
+      dbg("Module exists? #{Code.ensure_loaded?(live_view_module)}")
+
       # Call the LiveView's mount function
-      case live_view_module.mount(params, %{}, live_view_socket) do
+      dbg("Calling mount with:")
+      dbg(params)
+      dbg("socket assigns: #{inspect(live_view_socket.assigns)}")
+      mount_result = live_view_module.mount(params, %{}, live_view_socket)
+      dbg("Mount result: #{inspect(mount_result)}")
+
+      case mount_result do
         {:ok, mounted_socket} ->
+          dbg("Mount successful")
           # Start a process to hold the LiveView state
           {:ok, live_view_pid} = start_live_view_holder(live_path, mounted_socket, registry_key)
 
@@ -244,10 +293,12 @@ defmodule LiveReactNative.MobileChannel do
           {:ok, live_view_pid, initial_assigns}
 
         {:error, reason} ->
+          dbg("Mount failed with reason: #{inspect(reason)}")
           {:error, "mount_failed: #{inspect(reason)}"}
       end
     rescue
       error ->
+        dbg("Mount rescue error: #{inspect(error)}")
         Logger.error("LiveView mount error: #{inspect(error)}")
         {:error, "mount_error"}
     end

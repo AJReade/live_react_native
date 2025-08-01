@@ -13,7 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { createMobileClient } from 'live-react-native';
 
 export default function App() {
-  const [assigns, setAssigns] = useState({ count: 0 });
+  const [assigns, setAssigns] = useState({ count: 0, last_action: null, user_id: null });
   const [client, setClient] = useState(null);
   const [status, setStatus] = useState('Initializing...');
 
@@ -98,6 +98,14 @@ export default function App() {
     }
   };
 
+  const handleShowInfo = () => {
+    if (client) {
+      client.pushEvent('show_info', {});
+    } else {
+      Alert.alert('Error', 'Not connected to server');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
@@ -111,6 +119,12 @@ export default function App() {
       <View style={styles.counterContainer}>
         <Text style={styles.label}>Live Count from Server:</Text>
         <Text style={styles.count}>{assigns.count || 0}</Text>
+        {assigns.last_action && (
+          <Text style={styles.lastAction}>Last Action: {assigns.last_action}</Text>
+        )}
+        {assigns.user_id && (
+          <Text style={styles.userId}>User: {assigns.user_id}</Text>
+        )}
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
@@ -137,6 +151,14 @@ export default function App() {
             <Text style={styles.buttonText}>+</Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={[styles.button, styles.infoButton]}
+          onPress={handleShowInfo}
+          disabled={!client}
+        >
+          <Text style={styles.buttonText}>ℹ️ Show Info</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.info}>
@@ -211,7 +233,18 @@ const styles = StyleSheet.create({
     fontSize: 72,
     fontWeight: 'bold',
     color: '#3b82f6',
-    marginBottom: 30,
+    marginBottom: 10,
+  },
+  lastAction: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 5,
+    fontStyle: 'italic',
+  },
+  userId: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 20,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -233,6 +266,11 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     backgroundColor: '#6b7280',
+  },
+  infoButton: {
+    backgroundColor: '#3b82f6',
+    marginTop: 15,
+    width: '100%',
   },
   buttonText: {
     color: 'white',
