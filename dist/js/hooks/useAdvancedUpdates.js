@@ -1,9 +1,12 @@
-import { useMemo } from 'react';
-export function useAdvancedUpdates(options) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.useAdvancedUpdates = useAdvancedUpdates;
+const react_1 = require("react");
+function useAdvancedUpdates(options) {
     const { oldAssigns, newAssigns, keyFields = {}, preserveIdentity = false, componentMap = {}, debounceMs = 0, highPriorityPaths = [], enableConcurrentFeatures = false, priorityLevels = {}, enablePerformanceMonitoring = false, liveViewIntegration = false } = options;
-    const performanceStartTime = useMemo(() => performance.now(), []);
+    const performanceStartTime = (0, react_1.useMemo)(() => performance.now(), []);
     // List Operations Analysis
-    const listOperations = useMemo(() => {
+    const listOperations = (0, react_1.useMemo)(() => {
         const operations = {};
         Object.keys(keyFields).forEach(path => {
             if (path.includes('.'))
@@ -18,7 +21,7 @@ export function useAdvancedUpdates(options) {
         return operations;
     }, [oldAssigns, newAssigns, keyFields]);
     // Nested Operations Analysis
-    const nestedOperations = useMemo(() => {
+    const nestedOperations = (0, react_1.useMemo)(() => {
         const operations = {};
         Object.keys(keyFields).forEach(path => {
             if (!path.includes('.'))
@@ -44,7 +47,7 @@ export function useAdvancedUpdates(options) {
         return operations;
     }, [oldAssigns, newAssigns, keyFields]);
     // Component Identity Preservation
-    const identityMap = useMemo(() => {
+    const identityMap = (0, react_1.useMemo)(() => {
         if (!preserveIdentity)
             return {};
         const identity = {};
@@ -64,7 +67,7 @@ export function useAdvancedUpdates(options) {
         return identity;
     }, [oldAssigns, newAssigns, preserveIdentity]);
     // Selective Component Updates
-    const componentUpdates = useMemo(() => {
+    const componentUpdates = (0, react_1.useMemo)(() => {
         const updates = {};
         Object.keys(componentMap).forEach(componentName => {
             const dependencies = componentMap[componentName];
@@ -112,7 +115,7 @@ export function useAdvancedUpdates(options) {
         return updates;
     }, [oldAssigns, newAssigns, componentMap]);
     // Debouncing Analysis
-    const debounceAnalysis = useMemo(() => {
+    const debounceAnalysis = (0, react_1.useMemo)(() => {
         if (debounceMs === 0) {
             return {
                 debouncedUpdate: false,
@@ -163,7 +166,7 @@ export function useAdvancedUpdates(options) {
         };
     }, [oldAssigns, newAssigns, debounceMs, highPriorityPaths]);
     // Concurrent Features Analysis
-    const concurrentAnalysis = useMemo(() => {
+    const concurrentAnalysis = (0, react_1.useMemo)(() => {
         if (!enableConcurrentFeatures)
             return {};
         const changedPaths = Object.keys(newAssigns).filter(key => {
@@ -205,7 +208,7 @@ export function useAdvancedUpdates(options) {
         return {};
     }, [oldAssigns, newAssigns, enableConcurrentFeatures, priorityLevels]);
     // Performance Monitoring
-    const performanceMetrics = useMemo(() => {
+    const performanceMetrics = (0, react_1.useMemo)(() => {
         if (!enablePerformanceMonitoring)
             return undefined;
         const endTime = performance.now();
@@ -231,7 +234,7 @@ export function useAdvancedUpdates(options) {
         };
     }, [listOperations, enablePerformanceMonitoring, performanceStartTime]);
     // Memory Metrics
-    const memoryMetrics = useMemo(() => {
+    const memoryMetrics = (0, react_1.useMemo)(() => {
         if (!enablePerformanceMonitoring)
             return undefined;
         let reusedComponents = 0;
@@ -253,7 +256,7 @@ export function useAdvancedUpdates(options) {
         };
     }, [listOperations, enablePerformanceMonitoring]);
     // Integration Features
-    const integrationFeatures = useMemo(() => {
+    const integrationFeatures = (0, react_1.useMemo)(() => {
         if (!liveViewIntegration)
             return {};
         return {

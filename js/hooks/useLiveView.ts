@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
-import { createLiveViewClient, LiveViewClient } from '../client/LiveViewChannel';
+import { createMobileClient, MobileClient } from '../client/LiveViewChannel';
 import { LiveViewAssignsUpdate } from '../types';
 
 export interface UseLiveViewOptions {
@@ -66,19 +66,19 @@ export function useLiveView(
   const [totalUpdateTime, setTotalUpdateTime] = useState(0);
 
   // Refs for managing lifecycle and preventing stale closures
-  const clientRef = useRef<LiveViewClient | null>(null);
+  const clientRef = useRef<MobileClient | null>(null);
   const eventHandlersRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastAssignsRef = useRef<Record<string, any>>({});
   const isUnmountedRef = useRef(false);
 
-  // Initialize LiveView client and connection using functional API
+  // Initialize mobile client and connection using mobile-native API
   useEffect(() => {
-    const client = createLiveViewClient({
-      url: options.url || 'ws://localhost:4000/live/websocket',
-      params: {},
+    const client = createMobileClient({
+      url: options.url || 'ws://localhost:4000/mobile',
+      params: params,  // Pass user_id, token, etc. for mobile auth
       debug: options.enablePerformanceMonitoring,
-      onError: (error) => {
+      onError: (error: any) => {
         if (isUnmountedRef.current) return;
         setLoading(false);
         setError(error);
@@ -91,11 +91,11 @@ export function useLiveView(
 
     clientRef.current = client;
 
-    // Connect and join LiveView using functional API
+    // Connect and join mobile channel using mobile-native API
     client.connect().then(() => {
       if (isUnmountedRef.current) return;
 
-      client.joinLiveView(path, params, (newAssigns: Record<string, any>) => {
+      client.join(path, {}, (newAssigns: Record<string, any>) => {
         if (isUnmountedRef.current) return;
 
         const updateStart = performance.now();
@@ -118,7 +118,7 @@ export function useLiveView(
       // Set loading to false on successful join
       setLoading(false);
       setError(null);
-    }).catch((error) => {
+    }).catch((error: any) => {
       if (isUnmountedRef.current) return;
       setLoading(false);
       setError(error);
@@ -132,7 +132,7 @@ export function useLiveView(
         clearTimeout(debounceTimerRef.current);
       }
 
-      client.leaveLiveView();
+      client.leave();
       client.disconnect();
     };
   }, [path, JSON.stringify(params), options.url, options.debounceMs]);
@@ -197,7 +197,7 @@ export function useLiveView(
       return;
     }
 
-    clientRef.current.pushEventTo(target, event, payload, eventOptions.onReply);
+    clientRef.current.pushEvent(event, payload, eventOptions.onReply);
   }, []);
 
   // Handle events from server using functional client
@@ -242,7 +242,7 @@ export function useLiveView(
     }
 
     if (clientRef.current) {
-      clientRef.current.leaveLiveView();
+      clientRef.current.leave();
       clientRef.current.disconnect();
     }
   }, []);

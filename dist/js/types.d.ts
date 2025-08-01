@@ -7,6 +7,7 @@ export interface LiveViewOptions {
     reconnectOnError?: boolean;
     reconnectDelay?: (tries: number) => number;
     maxReconnectAttempts?: number;
+    debug?: boolean;
 }
 export interface LiveViewJoinOptions {
     onJoin?: (response: any) => void;
@@ -86,5 +87,42 @@ export interface UseLiveViewReturn extends LiveContextValue {
     connect: () => void;
     disconnect: () => void;
     reconnect: () => void;
+}
+export interface MobileClientOptions {
+    url: string;
+    params?: {
+        user_id?: string;
+        token?: string;
+        device_id?: string;
+        [key: string]: any;
+    };
+    reconnectDelay?: (tries: number) => number;
+    maxReconnectAttempts?: number;
+    debug?: boolean;
+    onError?: (error: Error) => void;
+    onReconnect?: () => void;
+}
+export interface MobileJoinOptions {
+    onJoin?: (response: any) => void;
+    onError?: (error: any) => void;
+    onTimeout?: () => void;
+}
+export interface MobileLeaveOptions {
+    onLeave?: () => void;
+}
+export interface AssignsUpdate {
+    assigns: Record<string, any>;
+    changed: boolean;
+}
+export interface MobileClient {
+    connect(): Promise<void>;
+    disconnect(): void;
+    join(topic: string, params: Record<string, any>, onAssignsUpdate: (assigns: Record<string, any>) => void): void;
+    leave(): void;
+    pushEvent(event: string, payload: Record<string, any>, onReply?: (reply: any, ref: number) => void): number;
+    handleEvent(event: string, callback: (payload: any) => void): () => void;
+    getChannel(): any;
+}
+export interface MobileClientFactoryOptions extends MobileClientOptions {
 }
 //# sourceMappingURL=types.d.ts.map

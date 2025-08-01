@@ -1,6 +1,6 @@
 import { Channel } from 'phoenix';
-import { LiveViewOptions, LiveViewJoinOptions, LiveViewLeaveOptions, PushEventOptions, ConnectionState, LiveViewAssignsUpdate } from '../types';
-export declare class LiveViewChannel {
+import { MobileClientOptions, MobileJoinOptions, MobileLeaveOptions, MobileClient, PushEventOptions, ConnectionState, AssignsUpdate } from '../types';
+export declare class MobileChannel {
     private socket;
     private channel;
     private currentTopic;
@@ -9,13 +9,16 @@ export declare class LiveViewChannel {
     private errorCallbacks;
     private maxReconnectAttemptsCallback;
     private maxReconnectAttempts;
-    constructor(options: LiveViewOptions);
+    private userId;
+    private authToken;
+    private debugMode;
+    constructor(options: MobileClientOptions);
     connect(): void;
     disconnect(): void;
-    joinLiveView(topic: string, params?: Record<string, any>, options?: LiveViewJoinOptions): void;
-    leaveLiveView(options?: LiveViewLeaveOptions): void;
+    join(topic: string, params?: Record<string, any>, options?: MobileJoinOptions): void;
+    leave(options?: MobileLeaveOptions): void;
     pushEvent(event: string, payload?: Record<string, any>, options?: PushEventOptions): void;
-    onAssignsUpdate(callback: (update: LiveViewAssignsUpdate) => void): void;
+    onAssignsUpdate(callback: (update: AssignsUpdate) => void): void;
     onConnectionChange(callback: (connected: boolean) => void): void;
     onError(callback: (error: Error) => void): void;
     onMaxReconnectAttempts(callback: () => void): void;
@@ -25,22 +28,6 @@ export declare class LiveViewChannel {
     getConnectionState(): ConnectionState;
     getChannel(): Channel | null;
 }
-export interface LiveViewClientOptions {
-    url: string;
-    params?: Record<string, any>;
-    reconnectDelay?: (attempt: number) => number;
-    debug?: boolean;
-    onError?: (error: Error) => void;
-    onReconnect?: () => void;
-}
-export interface LiveViewClient {
-    connect(): Promise<void>;
-    disconnect(): void;
-    joinLiveView(path: string, params: Record<string, any>, onAssignsUpdate: (assigns: Record<string, any>) => void): void;
-    leaveLiveView(): void;
-    pushEvent(event: string, payload?: Record<string, any>, onReply?: (reply: any, ref: number) => void): number;
-    pushEventTo(target: string, event: string, payload?: Record<string, any>, onReply?: (reply: any, ref: number) => void): number;
-    handleEvent(event: string, callback: (payload: any) => void): () => void;
-}
-export declare function createLiveViewClient(options: LiveViewClientOptions): LiveViewClient;
+export declare function createMobileClient(options: MobileClientOptions): MobileClient;
+export type { MobileClient };
 //# sourceMappingURL=LiveViewChannel.d.ts.map

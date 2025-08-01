@@ -6,6 +6,8 @@ defmodule LiveReactNative.RN do
   commands (navigation, haptics, notifications, etc.) to React Native clients.
   """
 
+
+
   # Navigation Commands
 
   def navigate(socket, screen, params \\ %{}) do
@@ -31,54 +33,47 @@ defmodule LiveReactNative.RN do
   end
 
   def vibrate(socket, options \\ %{}) do
-    # TODO: Implement vibrate command
-    raise "Not implemented yet - Phase 3.2"
+    add_rn_command(socket, "rn:vibrate", options)
   end
 
   def notification(socket, options \\ %{}) do
-    # TODO: Implement notification command
-    raise "Not implemented yet - Phase 3.2"
+    add_rn_command(socket, "rn:notification", options)
   end
 
   def badge(socket, options \\ %{}) do
-    # TODO: Implement badge command
-    raise "Not implemented yet - Phase 3.2"
+    add_rn_command(socket, "rn:badge", options)
   end
 
   # UI Interactions (Phase 3.3)
 
   def show_toast(socket, options \\ %{}) do
-    # TODO: Implement show_toast command
-    raise "Not implemented yet - Phase 3.3"
+    add_rn_command(socket, "rn:show_toast", options)
   end
 
   def show_alert(socket, options \\ %{}) do
-    # TODO: Implement show_alert command
-    raise "Not implemented yet - Phase 3.3"
+    add_rn_command(socket, "rn:show_alert", options)
   end
 
   def dismiss_keyboard(socket) do
-    # TODO: Implement dismiss_keyboard command
-    raise "Not implemented yet - Phase 3.3"
+    add_rn_command(socket, "rn:dismiss_keyboard", %{})
   end
 
   def show_loading(socket, options \\ %{}) do
-    # TODO: Implement show_loading command
-    raise "Not implemented yet - Phase 3.3"
+    add_rn_command(socket, "rn:show_loading", options)
   end
 
   def hide_loading(socket) do
-    # TODO: Implement hide_loading command
-    raise "Not implemented yet - Phase 3.3"
+    add_rn_command(socket, "rn:hide_loading", %{})
   end
 
   # Private helper functions
 
   defp add_rn_command(socket, type, payload) do
-    command = %{type: type, payload: payload}
-    existing_commands = socket.private[:rn_commands] || []
+    # Store RN commands in assigns so LiveViewHolder can detect and send them
+    command = {String.replace_prefix(type, "rn:", ""), payload}
+    existing_commands = socket.assigns[:__rn_commands__] || []
     new_commands = existing_commands ++ [command]
 
-    %{socket | private: Map.put(socket.private, :rn_commands, new_commands)}
+    %{socket | assigns: Map.put(socket.assigns, :__rn_commands__, new_commands)}
   end
 end

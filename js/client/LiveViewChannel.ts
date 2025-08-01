@@ -1,15 +1,17 @@
-// TODO: Implement in Phase 1.3
+// Mobile-native Phoenix Channel transport (Phase 1.3 refactor)
 import { Socket, Channel } from 'phoenix';
 import {
-  LiveViewOptions,
-  LiveViewJoinOptions,
-  LiveViewLeaveOptions,
+  MobileClientOptions,
+  MobileJoinOptions,
+  MobileLeaveOptions,
+  MobileClient,
   PushEventOptions,
   ConnectionState,
-  LiveViewAssignsUpdate,
+  AssignsUpdate,
 } from '../types';
+import { RNCommandHandlers } from './RNCommandHandlers';
 
-export class LiveViewChannel {
+export class MobileChannel {
   private socket: Socket;
   private channel: Channel | null = null;
   private currentTopic: string | null = null;
@@ -18,9 +20,19 @@ export class LiveViewChannel {
   private errorCallbacks: ((error: Error) => void)[] = [];
   private maxReconnectAttemptsCallback: (() => void) | null = null;
   private maxReconnectAttempts: number;
+  private userId: string | null = null;      // Mobile user identification
+  private authToken: string | null = null;   // Mobile auth token (JWT, etc.)
+  private debugMode: boolean = false;        // Debug logging
 
-  constructor(options: LiveViewOptions) {
+  constructor(options: MobileClientOptions) {
     this.maxReconnectAttempts = options.maxReconnectAttempts || 5;
+    this.debugMode = options.debug || false;
+
+    // Extract mobile authentication from params
+    if (options.params) {
+      this.userId = options.params.user_id || null;
+      this.authToken = options.params.token || null;
+    }
 
     this.connectionState = {
       connected: false,
@@ -97,22 +109,47 @@ export class LiveViewChannel {
     this.connectionState.connecting = false;
   }
 
-  joinLiveView(topic: string, params: Record<string, any> = {}, options: LiveViewJoinOptions = {}): void {
-    this.channel = this.socket.channel(topic, params);
-    this.currentTopic = topic;
+  join(topic: string, params: Record<string, any> = {}, options: MobileJoinOptions = {}): void {
+    // Format topic for Phoenix Channel: mobile: + path (standard channel topic)
+    const channelTopic = topic.startsWith('mobile:') ? topic : `mobile:${topic}`;
+
+    // Mobile-native Phoenix Channel join parameters (no LiveView-specific structure)
+    const mobileJoinParams = {
+      // Standard Phoenix Channel parameters
+      user_id: this.userId,
+      token: this.authToken,
+      ...params  // Allow additional mobile-specific params
+    };
+
+    // Log the join parameters for debugging
+    if (this.debugMode) {
+      console.log('📱 Mobile channel join params:', JSON.stringify(mobileJoinParams, null, 2));
+    }
+
+    this.channel = this.socket.channel(channelTopic, mobileJoinParams);
+    this.currentTopic = channelTopic;
 
     this.channel.join()
       .receive('ok', (response: any) => {
+        if (this.debugMode) {
+          console.log('✅ Mobile channel join successful:', response);
+        }
         if (options.onJoin) {
           options.onJoin(response);
         }
       })
       .receive('error', (error: any) => {
+        if (this.debugMode) {
+          console.error('❌ Mobile channel join error:', error);
+        }
         if (options.onError) {
           options.onError(error);
         }
       })
       .receive('timeout', () => {
+        if (this.debugMode) {
+          console.warn('⏰ Mobile channel join timeout');
+        }
         if (options.onError) {
           options.onError({ reason: 'timeout' });
         }
@@ -127,7 +164,7 @@ export class LiveViewChannel {
     });
   }
 
-  leaveLiveView(options: LiveViewLeaveOptions = {}): void {
+  leave(options: MobileLeaveOptions = {}): void {
     if (!this.channel) {
       return;
     }
@@ -145,7 +182,7 @@ export class LiveViewChannel {
 
   pushEvent(event: string, payload: Record<string, any> = {}, options: PushEventOptions = {}): void {
     if (!this.channel) {
-      throw new Error('Cannot push event: no LiveView channel joined');
+      throw new Error('Cannot push event: no mobile channel joined');
     }
 
     this.channel.push(event, payload)
@@ -161,7 +198,7 @@ export class LiveViewChannel {
       });
   }
 
-  onAssignsUpdate(callback: (update: LiveViewAssignsUpdate) => void): void {
+  onAssignsUpdate(callback: (update: AssignsUpdate) => void): void {
     if (!this.channel) {
       return;
     }
@@ -207,64 +244,51 @@ export class LiveViewChannel {
 
 // **NEW FUNCTIONAL API (Phase 1.3)**
 
-// Configuration interface for the factory function
-export interface LiveViewClientOptions {
-  url: string;
-  params?: Record<string, any>;
-  reconnectDelay?: (attempt: number) => number;
-  debug?: boolean;
-  onError?: (error: Error) => void;
-  onReconnect?: () => void;
-}
+// Mobile client interfaces are now defined in types.ts
 
-// Client instance interface
-export interface LiveViewClient {
-  connect(): Promise<void>;
-  disconnect(): void;
-  joinLiveView(path: string, params: Record<string, any>, onAssignsUpdate: (assigns: Record<string, any>) => void): void;
-  leaveLiveView(): void;
-  pushEvent(event: string, payload?: Record<string, any>, onReply?: (reply: any, ref: number) => void): number;
-  pushEventTo(target: string, event: string, payload?: Record<string, any>, onReply?: (reply: any, ref: number) => void): number;
-  handleEvent(event: string, callback: (payload: any) => void): () => void;
-}
-
-// Factory function that creates a LiveView client instance
-export function createLiveViewClient(options: LiveViewClientOptions): LiveViewClient {
-  const channel = new LiveViewChannel({
+// Factory function that creates a mobile client instance
+export function createMobileClient(options: MobileClientOptions): MobileClient {
+  const channel = new MobileChannel({
     url: options.url,
     params: options.params,
     reconnectDelay: options.reconnectDelay,
+    maxReconnectAttempts: options.maxReconnectAttempts,
+    debug: options.debug,
   });
 
   let eventRef = 0;
   const eventHandlers = new Map<string, Set<(data: any) => void>>();
 
   // Built-in RN command handlers
+  const rnHandlers = new RNCommandHandlers();
   const setupRNCommandHandlers = () => {
-    // Auto-handle React Native specific commands
-    channel.getChannel()?.on('rn:haptic', (payload: any) => {
-      if (options.debug) {
-        console.log('RN Command: haptic', payload);
-      }
-      // TODO: Implement actual haptic feedback in React Native
+    // List of all RN commands that should be handled automatically
+    const rnCommands = [
+      'rn:haptic', 'rn:navigate', 'rn:go_back', 'rn:reset_stack', 'rn:replace',
+      'rn:vibrate', 'rn:notification', 'rn:badge', 'rn:toast', 'rn:alert',
+      'rn:dismiss_keyboard', 'rn:show_loading', 'rn:hide_loading'
+    ];
+
+    // Auto-handle all React Native specific commands
+    rnCommands.forEach(command => {
+      channel.getChannel()?.on(command, async (payload: any) => {
+        if (options.debug) {
+          console.log(`RN Command: ${command}`, payload);
+        }
+
+        // Automatically execute the RN command
+        await rnHandlers.handleEvent(command, payload);
+      });
     });
 
-    channel.getChannel()?.on('rn:navigate', (payload: any) => {
-      if (options.debug) {
-        console.log('RN Command: navigate', payload);
-      }
-      // TODO: Implement actual navigation in React Native
-    });
-
-    channel.getChannel()?.on('rn:vibrate', (payload: any) => {
-      if (options.debug) {
-        console.log('RN Command: vibrate', payload);
-      }
-      // TODO: Implement actual vibration in React Native
-    });
+    // Log available dependencies if in debug mode
+    if (options.debug) {
+      const deps = rnHandlers.checkDependencies();
+      console.log('RN Dependencies available:', deps);
+    }
   };
 
-  const client: LiveViewClient = {
+  const client: MobileClient = {
     connect(): Promise<void> {
       return new Promise((resolve, reject) => {
         let resolved = false;
@@ -297,8 +321,8 @@ export function createLiveViewClient(options: LiveViewClientOptions): LiveViewCl
       channel.disconnect();
     },
 
-    joinLiveView(path: string, params: Record<string, any>, onAssignsUpdate: (assigns: Record<string, any>) => void): void {
-      channel.joinLiveView(path, params, {
+    join(topic: string, params: Record<string, any>, onAssignsUpdate: (assigns: Record<string, any>) => void): void {
+      channel.join(topic, params, {
         onJoin: (response: any) => {
           if (response.assigns) {
             onAssignsUpdate(response.assigns);
@@ -306,13 +330,13 @@ export function createLiveViewClient(options: LiveViewClientOptions): LiveViewCl
         },
         onError: (error: any) => {
           if (options.onError) {
-            options.onError(new Error(`Failed to join LiveView: ${JSON.stringify(error)}`));
+            options.onError(new Error(`Failed to join mobile channel: ${JSON.stringify(error)}`));
           }
         }
       });
 
-      // Set up assigns update listener - use the channel directly for test compatibility
-      channel.getChannel()?.on('assigns_update', (update: LiveViewAssignsUpdate) => {
+      // Set up assigns update listener - mobile channel compatibility
+      channel.getChannel()?.on('assigns_update', (update: AssignsUpdate) => {
         onAssignsUpdate(update.assigns);
       });
 
@@ -320,13 +344,13 @@ export function createLiveViewClient(options: LiveViewClientOptions): LiveViewCl
       setupRNCommandHandlers();
     },
 
-    leaveLiveView(): void {
-      channel.leaveLiveView();
+    leave(): void {
+      channel.leave();
     },
 
     pushEvent(event: string, payload: Record<string, any> = {}, onReply?: (reply: any, ref: number) => void): number {
       if (!channel.getChannel()) {
-        throw new Error('Cannot push event: not joined to a LiveView');
+        throw new Error('Cannot push event: not joined to a mobile channel');
       }
 
       const ref = ++eventRef;
@@ -342,16 +366,6 @@ export function createLiveViewClient(options: LiveViewClientOptions): LiveViewCl
       }
 
       return ref;
-    },
-
-    pushEventTo(target: string, event: string, payload: Record<string, any> = {}, onReply?: (reply: any, ref: number) => void): number {
-      // Add phx_target to payload for LiveComponent targeting
-      const targetedPayload = {
-        ...payload,
-        phx_target: target,
-      };
-
-      return client.pushEvent(event, targetedPayload, onReply);
     },
 
     handleEvent(event: string, callback: (payload: any) => void): () => void {
@@ -375,7 +389,14 @@ export function createLiveViewClient(options: LiveViewClientOptions): LiveViewCl
         eventHandlers.get(event)?.delete(callback);
       };
     },
+
+    getChannel(): any {
+      return channel.getChannel();
+    },
   };
 
   return client;
 }
+
+// Export types
+export type { MobileClient };

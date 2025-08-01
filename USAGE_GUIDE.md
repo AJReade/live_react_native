@@ -2,23 +2,24 @@
 
 ## Overview
 
-**LiveReact Native** bridges Phoenix LiveView with React Native, enabling real-time, stateful mobile applications powered by Elixir backends. Your React Native app becomes a live, reactive interface to your Phoenix LiveView processes.
+**LiveReact Native** enables real-time, stateful mobile applications powered by Phoenix LiveView business logic. Your React Native app connects via mobile-native Phoenix Channels to existing LiveView processes, giving you all the power of LiveView without browser limitations.
 
-## Core Architecture: Device-Centric Templates + Server State Management
+## Core Architecture: Mobile-Native Transport + LiveView Core
 
 - **React Native**: Holds all UI templates, components, and rendering logic
-- **Phoenix LiveView**: Acts as a pure state management and event handling service
-- **Communication**: JSON data over WebSockets (no server-side rendering)
-- **Real-time**: Automatic UI updates when server assigns change
+- **Phoenix Channels**: Mobile-native WebSocket transport (no browser sessions)
+- **Phoenix LiveView**: Existing LiveView processes handle state and business logic
+- **Communication**: JSON data over mobile-optimized WebSocket connection
+- **Real-time**: Automatic UI updates when LiveView assigns change
 
 ```
-┌─────────────────┐    WebSocket     ┌──────────────────┐
-│  React Native   │ ←──────────────→ │ Phoenix LiveView │
-│                 │    JSON assigns  │                  │
-│ • UI Templates  │                  │ • State Mgmt     │
-│ • Components    │                  │ • Event Handling │
-│ • Rendering     │                  │ • Business Logic │
-└─────────────────┘                  └──────────────────┘
+┌─────────────────┐   Phoenix Channel   ┌──────────────────┐   LiveView Process   ┌──────────────────┐
+│  React Native   │ ←─────────────────→ │ Mobile Transport │ ←─────────────────→ │ Phoenix LiveView │
+│                 │   JSON over WS      │                  │   Standard LiveView │                  │
+│ • UI Templates  │                     │ • Mobile Auth    │                     │ • State Mgmt     │
+│ • Components    │                     │ • Event Forward  │                     │ • Event Handling │
+│ • Rendering     │                     │ • Assign Sync    │                     │ • Business Logic │
+└─────────────────┘                     └──────────────────┘                     └──────────────────┘
 ```
 
 ## Quick Start
@@ -39,27 +40,27 @@ npm install live-react-native phoenix
 ```typescript
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { createLiveViewClient } from 'live-react-native';
+import { createMobileClient } from 'live-react-native';
 
 export default function CounterScreen() {
   const [assigns, setAssigns] = React.useState({ count: 0 });
   const [client, setClient] = React.useState(null);
 
   React.useEffect(() => {
-    const liveClient = createLiveViewClient({
-      url: 'ws://localhost:4000/live/websocket',
-      params: { _csrf_token: 'your-token' }
+    const mobileClient = createMobileClient({
+      url: 'ws://localhost:4000/mobile',  // Mobile-native transport
+      params: { user_id: 'user123' }     // No browser sessions required
     });
 
-    // Connect and join LiveView
-    liveClient.connect();
-    liveClient.joinLiveView('/counter', {}, (newAssigns) => {
+    // Connect and join mobile channel
+    mobileClient.connect();
+    mobileClient.join('/counter', {}, (newAssigns) => {
       setAssigns(newAssigns);
     });
 
-    setClient(liveClient);
+    setClient(mobileClient);
 
-    return () => liveClient.disconnect();
+    return () => mobileClient.disconnect();
   }, []);
 
   if (!client) return <Text>Connecting...</Text>;
@@ -86,24 +87,28 @@ export default function CounterScreen() {
 }
 ```
 
-### 3. Basic Phoenix LiveView Setup
+### 3. Phoenix LiveView Setup (Unchanged!)
+
+**The beauty:** Your LiveView code stays **exactly the same** as browser LiveView! Mobile transport is handled transparently.
 
 ```elixir
 defmodule MyAppWeb.CounterLive do
-  use MyAppWeb, :live_view
+  use MyAppWeb, :live_view          # Same as browser LiveView!
   import LiveReactNative.RN
 
+  # Same mount/3 signature as browser LiveView
   def mount(_params, _session, socket) do
     {:ok, assign(socket, count: 0)}
   end
 
+  # Same handle_event/3 signature as browser LiveView
   def handle_event("increment", _params, socket) do
     new_count = socket.assigns.count + 1
 
     {:noreply,
      socket
-     |> assign(count: new_count)
-     |> RN.haptic(%{type: "light"})}  # Mobile haptic feedback
+     |> assign(count: new_count)     # Same assign/2 as browser LiveView
+     |> RN.haptic(%{type: "light"})} # Mobile-specific additions
   end
 
   def handle_event("decrement", _params, socket) do
@@ -112,29 +117,22 @@ defmodule MyAppWeb.CounterLive do
     {:noreply, assign(socket, count: new_count)}
   end
 
-  # Optional: Web fallback (LiveView still works in browser)
-  def render(assigns) do
-    ~H"""
-    <div>
-      <h1>Count: <%= @count %></h1>
-      <button phx-click="increment">+</button>
-      <button phx-click="decrement">-</button>
-    </div>
-    """
-  end
+  # No render/1 function needed for mobile!
+  # LiveView processes handle pure state management,
+  # React Native handles all UI rendering
 end
 ```
 
 ## Client API Reference
 
-### Creating a Client
+### Creating a Mobile Client
 
 ```typescript
-import { createLiveViewClient } from 'live-react-native';
+import { createMobileClient } from 'live-react-native';
 
-const client = createLiveViewClient({
-  url: 'ws://localhost:4000/live/websocket',
-  params: { _csrf_token: token },
+const client = createMobileClient({
+  url: 'ws://localhost:4000/mobile',          // Mobile-native transport
+  params: { user_id: 'user123', token: jwt }, // Mobile auth (no browser sessions)
   reconnectDelay: (attempt) => Math.min(1000 * attempt, 10000)
 });
 ```
@@ -142,16 +140,16 @@ const client = createLiveViewClient({
 ### Connection Management
 
 ```typescript
-// Connect to Phoenix
+// Connect to Phoenix Channel
 await client.connect();
 
-// Join a LiveView
-client.joinLiveView('/path', params, (assigns) => {
+// Join a mobile channel (connects to LiveView process behind the scenes)
+client.join('/counter', params, (assigns) => {
   setAssigns(assigns);
 });
 
-// Leave current LiveView
-client.leaveLiveView();
+// Leave current channel
+client.leave();
 
 // Disconnect
 client.disconnect();
@@ -318,6 +316,18 @@ function UserForm() {
   const [assigns, setAssigns] = useState({ user: {}, errors: {} });
   const [client, setClient] = useState(null);
 
+  React.useEffect(() => {
+    const mobileClient = createMobileClient({
+      url: 'ws://localhost:4000/mobile'
+    });
+
+    mobileClient.connect();
+    mobileClient.join('/user_form', {}, setAssigns);
+    setClient(mobileClient);
+
+    return () => mobileClient.disconnect();
+  }, []);
+
   const handleSubmit = async () => {
     const result = await new Promise((resolve, reject) => {
       client.pushEvent('validate_and_save', assigns.user, (reply) => {
@@ -394,25 +404,25 @@ function ChatScreen({ roomId }) {
   const [client, setClient] = useState(null);
 
   useEffect(() => {
-    const liveClient = createLiveViewClient({
-      url: 'ws://localhost:4000/live/websocket'
+    const mobileClient = createMobileClient({
+      url: 'ws://localhost:4000/mobile'
     });
 
-    liveClient.connect();
-    liveClient.joinLiveView(`/chat/${roomId}`, {}, setAssigns);
+    mobileClient.connect();
+    mobileClient.join(`/chat/${roomId}`, {}, setAssigns);
 
     // Handle real-time events
-    liveClient.handleEvent('new_message', (payload) => {
+    mobileClient.handleEvent('new_message', (payload) => {
       // Haptic feedback for new messages
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     });
 
-    liveClient.handleEvent('user_typing', (payload) => {
+    mobileClient.handleEvent('user_typing', (payload) => {
       setTypingUsers(payload.users);
     });
 
-    setClient(liveClient);
-    return () => liveClient.disconnect();
+    setClient(mobileClient);
+    return () => mobileClient.disconnect();
   }, [roomId]);
 
   const sendMessage = (text) => {
@@ -533,10 +543,23 @@ function ImageUpload() {
 ### Using Advanced Update Strategies
 
 ```typescript
-import { useLiveView, useAdvancedUpdates } from 'live-react-native';
+import { createMobileClient, useAdvancedUpdates } from 'live-react-native';
 
 function OptimizedListScreen() {
-  const { assigns, client } = useLiveView('/items', {});
+  const [assigns, setAssigns] = useState({ items: [], total_count: 0 });
+  const [client, setClient] = useState(null);
+
+  useEffect(() => {
+    const mobileClient = createMobileClient({
+      url: 'ws://localhost:4000/mobile'
+    });
+
+    mobileClient.connect();
+    mobileClient.join('/items', {}, setAssigns);
+    setClient(mobileClient);
+
+    return () => mobileClient.disconnect();
+  }, []);
 
   const advanced = useAdvancedUpdates({
     listOptimization: {
@@ -592,10 +615,10 @@ function MonitoredScreen() {
 ### Enable Debug Mode
 
 ```typescript
-const client = createLiveViewClient({
-  url: 'ws://localhost:4000/live/websocket',
+const client = createMobileClient({
+  url: 'ws://localhost:4000/mobile',
   debug: true,  // Enables console logging
-  params: { _csrf_token: token }
+  params: { user_id: 'user123' }
 });
 ```
 
@@ -637,9 +660,10 @@ function Screen() {
 ### Error Boundaries
 
 ```typescript
-const client = createLiveViewClient({
+const client = createMobileClient({
+  url: 'ws://localhost:4000/mobile',
   onError: (error) => {
-    console.error('LiveView error:', error);
+    console.error('Mobile client error:', error);
     showErrorMessage('Connection lost. Reconnecting...');
   },
   onReconnect: () => {

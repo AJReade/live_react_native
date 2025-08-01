@@ -1,16 +1,19 @@
-import { useRef, useCallback } from 'react';
-export function usePerformanceMonitoring(options = {}) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.usePerformanceMonitoring = usePerformanceMonitoring;
+const react_1 = require("react");
+function usePerformanceMonitoring(options = {}) {
     const { enableAssignsDiffLogging = false, enableComponentRerenderLogging = false, logLevel = 'info', trackChangePatterns = false, detectRapidChanges = false, rapidChangeThreshold = 1000, enablePerformanceProfiling = false, profileRenderPhases = false, trackMovingAverages = false, movingAverageWindow = 10, detectRegressions = false, regressionThreshold = 2.0, enableUpdateVisualization = false, visualizationFormat = 'tree', trackComponentFlow = false, exportForDevTools = false, enableMemoryLeakDetection = false, memoryTrackingInterval = 1000, trackSubscriptions = false, trackComponentLifecycle = false, memoryLeakThreshold = 100, provideOptimizationSuggestions = false, enableDevToolsIntegration = false, devToolsPort = 8081, enableProductionMonitoring = false, productionSafeMode = false, monitoringOverheadLimit = 10, customLogFormatter, verbosityLevel = 'normal' } = options;
     // Internal state
-    const changePatternRef = useRef({});
-    const profilesRef = useRef({});
-    const performanceMetricsRef = useRef({});
-    const memoryTrackingRef = useRef([]);
-    const subscriptionsRef = useRef({});
-    const componentLifecycleRef = useRef({});
-    const visualizationSessionsRef = useRef([]);
-    const devToolsStateRef = useRef({ connected: false });
-    const monitoringOverheadRef = useRef(0);
+    const changePatternRef = (0, react_1.useRef)({});
+    const profilesRef = (0, react_1.useRef)({});
+    const performanceMetricsRef = (0, react_1.useRef)({});
+    const memoryTrackingRef = (0, react_1.useRef)([]);
+    const subscriptionsRef = (0, react_1.useRef)({});
+    const componentLifecycleRef = (0, react_1.useRef)({});
+    const visualizationSessionsRef = (0, react_1.useRef)([]);
+    const devToolsStateRef = (0, react_1.useRef)({ connected: false });
+    const monitoringOverheadRef = (0, react_1.useRef)(0);
     // Initialize refs properly for testing environment
     if (!changePatternRef.current) {
         changePatternRef.current = {};
@@ -40,7 +43,7 @@ export function usePerformanceMonitoring(options = {}) {
         monitoringOverheadRef.current = 0;
     }
     // Utility Functions
-    const deepEqual = useCallback((obj1, obj2) => {
+    const deepEqual = (0, react_1.useCallback)((obj1, obj2) => {
         if (obj1 === obj2)
             return true;
         if (typeof obj1 !== 'object' || obj1 === null || typeof obj2 !== 'object' || obj2 === null) {
@@ -57,13 +60,13 @@ export function usePerformanceMonitoring(options = {}) {
         }
         return true;
     }, []);
-    const getValueByPath = useCallback((obj, path) => {
+    const getValueByPath = (0, react_1.useCallback)((obj, path) => {
         return path.split('.').reduce((current, key) => current?.[key], obj);
     }, []);
-    const generateId = useCallback(() => {
+    const generateId = (0, react_1.useCallback)(() => {
         return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }, []);
-    const calculateObjectSize = useCallback((obj) => {
+    const calculateObjectSize = (0, react_1.useCallback)((obj) => {
         try {
             return JSON.stringify(obj).length;
         }
@@ -72,7 +75,7 @@ export function usePerformanceMonitoring(options = {}) {
             return 50 * 1024 * 1024; // 50MB fallback for testing
         }
     }, []);
-    const log = useCallback((level, message, data) => {
+    const log = (0, react_1.useCallback)((level, message, data) => {
         const formatData = customLogFormatter ? customLogFormatter(data) : data;
         if (level === 'debug' && logLevel === 'debug') {
             console.log(message, formatData);
@@ -88,7 +91,7 @@ export function usePerformanceMonitoring(options = {}) {
         }
     }, [customLogFormatter, logLevel]);
     // Assigns Diff Logging
-    const logAssignsDiff = useCallback((oldAssigns, newAssigns) => {
+    const logAssignsDiff = (0, react_1.useCallback)((oldAssigns, newAssigns) => {
         if (!enableAssignsDiffLogging)
             return;
         const startTime = performance.now();
@@ -139,7 +142,7 @@ export function usePerformanceMonitoring(options = {}) {
         const endTime = performance.now();
         monitoringOverheadRef.current += (endTime - startTime);
     }, [enableAssignsDiffLogging, deepEqual, trackChangePatterns, detectRapidChanges, rapidChangeThreshold, verbosityLevel, log]);
-    const logComponentRerenderReasons = useCallback((oldAssigns, newAssigns, componentDependencies) => {
+    const logComponentRerenderReasons = (0, react_1.useCallback)((oldAssigns, newAssigns, componentDependencies) => {
         if (!enableComponentRerenderLogging)
             return;
         const analysis = {};
@@ -165,17 +168,17 @@ export function usePerformanceMonitoring(options = {}) {
         });
         log('info', '[LiveReact Native] Component Rerender Analysis', analysis);
     }, [enableComponentRerenderLogging, getValueByPath, deepEqual, log]);
-    const getChangePatterns = useCallback(() => {
+    const getChangePatterns = (0, react_1.useCallback)(() => {
         return { ...changePatternRef.current };
     }, []);
     // Performance Profiling
-    const startAssignsProfile = useCallback(() => {
+    const startAssignsProfile = (0, react_1.useCallback)(() => {
         return startProfile('assigns_processing');
     }, []);
-    const endAssignsProfile = useCallback((profileId) => {
+    const endAssignsProfile = (0, react_1.useCallback)((profileId) => {
         return endProfile(profileId);
     }, []);
-    const startProfile = useCallback((phase) => {
+    const startProfile = (0, react_1.useCallback)((phase) => {
         if (!enablePerformanceProfiling)
             return '';
         const profileId = generateId();
@@ -186,7 +189,7 @@ export function usePerformanceMonitoring(options = {}) {
         };
         return profileId;
     }, [enablePerformanceProfiling, generateId]);
-    const endProfile = useCallback((profileId) => {
+    const endProfile = (0, react_1.useCallback)((profileId) => {
         if (!enablePerformanceProfiling || !profilesRef.current[profileId])
             return null;
         const profile = profilesRef.current[profileId];
@@ -230,7 +233,7 @@ export function usePerformanceMonitoring(options = {}) {
         delete profilesRef.current[profileId];
         return result;
     }, [enablePerformanceProfiling, trackMovingAverages, movingAverageWindow, detectRegressions, regressionThreshold, log]);
-    const getProfilingSummary = useCallback(() => {
+    const getProfilingSummary = (0, react_1.useCallback)(() => {
         const phases = {};
         let totalTime = 0;
         let bottleneck = '';
@@ -250,7 +253,7 @@ export function usePerformanceMonitoring(options = {}) {
         });
         return { phases, totalTime, bottleneck };
     }, []);
-    const getPerformanceMetrics = useCallback(() => {
+    const getPerformanceMetrics = (0, react_1.useCallback)(() => {
         const metrics = {};
         Object.keys(performanceMetricsRef.current).forEach(phase => {
             const phaseMetrics = performanceMetricsRef.current[phase];
@@ -283,7 +286,7 @@ export function usePerformanceMonitoring(options = {}) {
         return metrics;
     }, [movingAverageWindow]);
     // Update Visualization
-    const visualizeAssignsChanges = useCallback((oldAssigns, newAssigns) => {
+    const visualizeAssignsChanges = (0, react_1.useCallback)((oldAssigns, newAssigns) => {
         if (!enableUpdateVisualization)
             return null;
         const buildTree = (oldObj, newObj, path = '') => {
@@ -345,7 +348,7 @@ export function usePerformanceMonitoring(options = {}) {
         }
         return visualization;
     }, [enableUpdateVisualization, visualizationFormat, exportForDevTools, deepEqual, generateId, getProfilingSummary]);
-    const generateComponentFlowDiagram = useCallback((componentUpdates) => {
+    const generateComponentFlowDiagram = (0, react_1.useCallback)((componentUpdates) => {
         if (!trackComponentFlow)
             return null;
         const nodes = Object.keys(componentUpdates).map(componentName => ({
@@ -374,7 +377,7 @@ export function usePerformanceMonitoring(options = {}) {
         }
         return { nodes, edges, updatePath };
     }, [trackComponentFlow]);
-    const getVisualizationExport = useCallback(() => {
+    const getVisualizationExport = (0, react_1.useCallback)(() => {
         return {
             version: '1.0',
             timestamp: Date.now(),
@@ -382,7 +385,7 @@ export function usePerformanceMonitoring(options = {}) {
         };
     }, []);
     // Memory Leak Detection
-    const trackAssignsMemory = useCallback((assigns) => {
+    const trackAssignsMemory = (0, react_1.useCallback)((assigns) => {
         if (!enableMemoryLeakDetection)
             return;
         const size = calculateObjectSize(assigns);
@@ -413,7 +416,7 @@ export function usePerformanceMonitoring(options = {}) {
             });
         }
     }, [enableMemoryLeakDetection, calculateObjectSize, productionSafeMode, memoryLeakThreshold, log]);
-    const trackSubscription = useCallback((id, type) => {
+    const trackSubscription = (0, react_1.useCallback)((id, type) => {
         if (!trackSubscriptions)
             return;
         subscriptionsRef.current[id] = {
@@ -421,12 +424,12 @@ export function usePerformanceMonitoring(options = {}) {
             timestamp: Date.now()
         };
     }, [trackSubscriptions]);
-    const untrackSubscription = useCallback((id) => {
+    const untrackSubscription = (0, react_1.useCallback)((id) => {
         if (!trackSubscriptions)
             return;
         delete subscriptionsRef.current[id];
     }, [trackSubscriptions]);
-    const trackComponentMount = useCallback((componentName, props) => {
+    const trackComponentMount = (0, react_1.useCallback)((componentName, props) => {
         if (!trackComponentLifecycle)
             return;
         const id = `${componentName}-${generateId()}`;
@@ -437,7 +440,7 @@ export function usePerformanceMonitoring(options = {}) {
             unmounted: false
         };
     }, [trackComponentLifecycle, generateId, productionSafeMode]);
-    const trackComponentUnmount = useCallback((componentName) => {
+    const trackComponentUnmount = (0, react_1.useCallback)((componentName) => {
         if (!trackComponentLifecycle)
             return;
         // Find and mark as unmounted
@@ -450,7 +453,7 @@ export function usePerformanceMonitoring(options = {}) {
             }
         });
     }, [trackComponentLifecycle]);
-    const getMemoryReport = useCallback(() => {
+    const getMemoryReport = (0, react_1.useCallback)(() => {
         const samples = [...memoryTrackingRef.current];
         const currentUsage = samples.length > 0 ? samples[samples.length - 1].size : 0;
         const peakUsage = Math.max(...samples.map(s => s.size), 0);
@@ -469,7 +472,7 @@ export function usePerformanceMonitoring(options = {}) {
             leakSuspected
         };
     }, []);
-    const getSubscriptionReport = useCallback(() => {
+    const getSubscriptionReport = (0, react_1.useCallback)(() => {
         const activeSubscriptions = Object.keys(subscriptionsRef.current).length;
         const subscriptionTypes = {};
         const potentialLeaks = [];
@@ -492,7 +495,7 @@ export function usePerformanceMonitoring(options = {}) {
             potentialLeaks
         };
     }, []);
-    const getLifecycleReport = useCallback(() => {
+    const getLifecycleReport = (0, react_1.useCallback)(() => {
         const components = Object.values(componentLifecycleRef.current);
         const mountedComponents = components.filter((c) => !c.unmounted).length;
         const unmountedComponents = components.filter((c) => c.unmounted).length;
@@ -510,7 +513,7 @@ export function usePerformanceMonitoring(options = {}) {
             potentialLeaks
         };
     }, []);
-    const getOptimizationSuggestions = useCallback(() => {
+    const getOptimizationSuggestions = (0, react_1.useCallback)(() => {
         const suggestions = [];
         // Analyze latest memory sample
         const latestSample = memoryTrackingRef.current[memoryTrackingRef.current.length - 1];
@@ -548,13 +551,13 @@ export function usePerformanceMonitoring(options = {}) {
         }
         return suggestions;
     }, [productionSafeMode, deepEqual]);
-    const getObjectDepth = useCallback((obj, depth = 0) => {
+    const getObjectDepth = (0, react_1.useCallback)((obj, depth = 0) => {
         if (typeof obj !== 'object' || obj === null)
             return depth;
         return Math.max(depth, ...Object.values(obj).map(value => getObjectDepth(value, depth + 1)));
     }, []);
     // Integration Features
-    const startDevToolsReporting = useCallback(() => {
+    const startDevToolsReporting = (0, react_1.useCallback)(() => {
         if (!enableDevToolsIntegration)
             return;
         if (!devToolsStateRef.current) {
@@ -569,14 +572,14 @@ export function usePerformanceMonitoring(options = {}) {
             'memory_tracking'
         ];
     }, [enableDevToolsIntegration, devToolsPort]);
-    const getDevToolsStatus = useCallback(() => {
+    const getDevToolsStatus = (0, react_1.useCallback)(() => {
         return {
             connected: devToolsStateRef.current.connected,
             port: devToolsStateRef.current.port,
             features: devToolsStateRef.current.features || []
         };
     }, []);
-    const getProductionReport = useCallback(() => {
+    const getProductionReport = (0, react_1.useCallback)(() => {
         const sensitiveFields = ['token', 'password', 'secret', 'key', 'auth'];
         const dataFieldsTracked = [];
         let sensitiveDataDetected = false;
@@ -602,11 +605,11 @@ export function usePerformanceMonitoring(options = {}) {
             timestamp: Date.now()
         };
     }, [productionSafeMode, getProfilingSummary, getChangePatterns]);
-    const getMonitoringOverhead = useCallback(() => {
+    const getMonitoringOverhead = (0, react_1.useCallback)(() => {
         return monitoringOverheadRef.current || 0; // Return raw value or 0
     }, []);
     // Configuration
-    const getEnabledFeatures = useCallback(() => {
+    const getEnabledFeatures = (0, react_1.useCallback)(() => {
         const features = [];
         if (enableAssignsDiffLogging)
             features.push('assigns_diff_logging');

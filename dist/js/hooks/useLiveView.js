@@ -1,5 +1,8 @@
-import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
-import { createLiveViewClient } from '../client/LiveViewChannel';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.useLiveView = useLiveView;
+const react_1 = require("react");
+const LiveViewChannel_1 = require("../client/LiveViewChannel");
 function shallowEqual(objA, objB) {
     if (objA === objB)
         return true;
@@ -19,25 +22,25 @@ function createMemoizedProps(assigns) {
     // Simple implementation - in production this would be more sophisticated
     return assigns;
 }
-export function useLiveView(path, params, options = {}) {
+function useLiveView(path, params, options = {}) {
     // Core state
-    const [loading, setLoading] = useState(true);
-    const [assigns, setAssigns] = useState({});
-    const [error, setError] = useState(null);
+    const [loading, setLoading] = (0, react_1.useState)(true);
+    const [assigns, setAssigns] = (0, react_1.useState)({});
+    const [error, setError] = (0, react_1.useState)(null);
     // Performance monitoring
-    const [updateCount, setUpdateCount] = useState(0);
-    const [totalUpdateTime, setTotalUpdateTime] = useState(0);
+    const [updateCount, setUpdateCount] = (0, react_1.useState)(0);
+    const [totalUpdateTime, setTotalUpdateTime] = (0, react_1.useState)(0);
     // Refs for managing lifecycle and preventing stale closures
-    const clientRef = useRef(null);
-    const eventHandlersRef = useRef(new Map());
-    const debounceTimerRef = useRef(null);
-    const lastAssignsRef = useRef({});
-    const isUnmountedRef = useRef(false);
-    // Initialize LiveView client and connection using functional API
-    useEffect(() => {
-        const client = createLiveViewClient({
-            url: options.url || 'ws://localhost:4000/live/websocket',
-            params: {},
+    const clientRef = (0, react_1.useRef)(null);
+    const eventHandlersRef = (0, react_1.useRef)(new Map());
+    const debounceTimerRef = (0, react_1.useRef)(null);
+    const lastAssignsRef = (0, react_1.useRef)({});
+    const isUnmountedRef = (0, react_1.useRef)(false);
+    // Initialize mobile client and connection using mobile-native API
+    (0, react_1.useEffect)(() => {
+        const client = (0, LiveViewChannel_1.createMobileClient)({
+            url: options.url || 'ws://localhost:4000/mobile',
+            params: params, // Pass user_id, token, etc. for mobile auth
             debug: options.enablePerformanceMonitoring,
             onError: (error) => {
                 if (isUnmountedRef.current)
@@ -52,11 +55,11 @@ export function useLiveView(path, params, options = {}) {
             }
         });
         clientRef.current = client;
-        // Connect and join LiveView using functional API
+        // Connect and join mobile channel using mobile-native API
         client.connect().then(() => {
             if (isUnmountedRef.current)
                 return;
-            client.joinLiveView(path, params, (newAssigns) => {
+            client.join(path, {}, (newAssigns) => {
                 if (isUnmountedRef.current)
                     return;
                 const updateStart = performance.now();
@@ -89,12 +92,12 @@ export function useLiveView(path, params, options = {}) {
             if (debounceTimerRef.current) {
                 clearTimeout(debounceTimerRef.current);
             }
-            client.leaveLiveView();
+            client.leave();
             client.disconnect();
         };
     }, [path, JSON.stringify(params), options.url, options.debounceMs]);
     // Apply assigns update with smart reconciliation
-    const applyAssignsUpdate = useCallback((newAssigns, updateStart) => {
+    const applyAssignsUpdate = (0, react_1.useCallback)((newAssigns, updateStart) => {
         if (isUnmountedRef.current)
             return;
         // Smart reconciliation - only update if assigns actually changed
@@ -114,11 +117,11 @@ export function useLiveView(path, params, options = {}) {
         }
     }, [options.enablePerformanceMonitoring]);
     // Memoized props with shallow comparison
-    const memoizedProps = useMemo(() => {
+    const memoizedProps = (0, react_1.useMemo)(() => {
         return createMemoizedProps(assigns);
     }, [assigns]);
     // Computed values with memoization
-    const computedValues = useMemo(() => {
+    const computedValues = (0, react_1.useMemo)(() => {
         if (!options.computedValues)
             return {};
         const computed = {};
@@ -128,7 +131,7 @@ export function useLiveView(path, params, options = {}) {
         return computed;
     }, [assigns, options.computedValues]);
     // Push event to server using functional client
-    const pushEvent = useCallback((event, payload = {}, eventOptions = {}) => {
+    const pushEvent = (0, react_1.useCallback)((event, payload = {}, eventOptions = {}) => {
         if (!clientRef.current) {
             console.warn('Cannot push event: LiveView not connected');
             return;
@@ -136,15 +139,15 @@ export function useLiveView(path, params, options = {}) {
         clientRef.current.pushEvent(event, payload, eventOptions.onReply);
     }, []);
     // Push event to specific target (LiveComponent) using functional client
-    const pushEventTo = useCallback((target, event, payload = {}, eventOptions = {}) => {
+    const pushEventTo = (0, react_1.useCallback)((target, event, payload = {}, eventOptions = {}) => {
         if (!clientRef.current) {
             console.warn('Cannot push event: LiveView not connected');
             return;
         }
-        clientRef.current.pushEventTo(target, event, payload, eventOptions.onReply);
+        clientRef.current.pushEvent(event, payload, eventOptions.onReply);
     }, []);
     // Handle events from server using functional client
-    const handleEvent = useCallback((event, callback) => {
+    const handleEvent = (0, react_1.useCallback)((event, callback) => {
         if (!clientRef.current) {
             console.warn('Cannot handle event: LiveView not connected');
             return () => { };
@@ -152,7 +155,7 @@ export function useLiveView(path, params, options = {}) {
         return clientRef.current.handleEvent(event, callback);
     }, []);
     // Legacy event handler management (for backward compatibility)
-    const addEventHandler = useCallback((event, handler) => {
+    const addEventHandler = (0, react_1.useCallback)((event, handler) => {
         if (!eventHandlersRef.current.has(event)) {
             eventHandlersRef.current.set(event, new Set());
         }
@@ -162,7 +165,7 @@ export function useLiveView(path, params, options = {}) {
             clientRef.current.handleEvent(event, handler);
         }
     }, []);
-    const removeEventHandler = useCallback((event, handler) => {
+    const removeEventHandler = (0, react_1.useCallback)((event, handler) => {
         const handlers = eventHandlersRef.current.get(event);
         if (handlers) {
             handlers.delete(handler);
@@ -172,18 +175,18 @@ export function useLiveView(path, params, options = {}) {
         }
     }, []);
     // Cleanup function
-    const cleanup = useCallback(() => {
+    const cleanup = (0, react_1.useCallback)(() => {
         isUnmountedRef.current = true;
         if (debounceTimerRef.current) {
             clearTimeout(debounceTimerRef.current);
         }
         if (clientRef.current) {
-            clientRef.current.leaveLiveView();
+            clientRef.current.leave();
             clientRef.current.disconnect();
         }
     }, []);
     // Performance metrics
-    const performanceMetrics = useMemo(() => {
+    const performanceMetrics = (0, react_1.useMemo)(() => {
         if (!options.enablePerformanceMonitoring || updateCount === 0) {
             return undefined;
         }

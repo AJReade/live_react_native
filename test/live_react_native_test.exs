@@ -392,7 +392,7 @@ defmodule LiveReactNative.RNTest do
   use ExUnit.Case
 
   describe "RN.navigate/3" do
-    test "adds rn:navigate command to socket" do
+    test "adds navigate command to socket assigns" do
       socket = %Phoenix.LiveView.Socket{
         assigns: %{},
         private: %{}
@@ -400,23 +400,23 @@ defmodule LiveReactNative.RNTest do
 
       result_socket = LiveReactNative.RN.navigate(socket, "ProfileScreen", %{userId: 123})
 
-      assert result_socket.private[:rn_commands] == [
-        %{type: "rn:navigate", payload: %{screen: "ProfileScreen", params: %{userId: 123}}}
+      assert result_socket.assigns[:__rn_commands__] == [
+        {"navigate", %{screen: "ProfileScreen", params: %{userId: 123}}}
       ]
     end
 
     test "appends to existing rn_commands" do
       socket = %Phoenix.LiveView.Socket{
-        assigns: %{},
-        private: %{rn_commands: [%{type: "rn:haptic", payload: %{type: "light"}}]}
+        assigns: %{__rn_commands__: [{"haptic", %{type: "light"}}]},
+        private: %{}
       }
 
       result_socket = LiveReactNative.RN.navigate(socket, "HomeScreen")
 
-      assert length(result_socket.private[:rn_commands]) == 2
-      assert List.last(result_socket.private[:rn_commands]) == %{
-        type: "rn:navigate",
-        payload: %{screen: "HomeScreen", params: %{}}
+      assert length(result_socket.assigns[:__rn_commands__]) == 2
+      assert List.last(result_socket.assigns[:__rn_commands__]) == {
+        "navigate",
+        %{screen: "HomeScreen", params: %{}}
       }
     end
 
@@ -425,20 +425,20 @@ defmodule LiveReactNative.RNTest do
 
       result_socket = LiveReactNative.RN.navigate(socket, "HomeScreen")
 
-      assert result_socket.private[:rn_commands] == [
-        %{type: "rn:navigate", payload: %{screen: "HomeScreen", params: %{}}}
+      assert result_socket.assigns[:__rn_commands__] == [
+        {"navigate", %{screen: "HomeScreen", params: %{}}}
       ]
     end
   end
 
   describe "RN.go_back/1" do
-    test "adds rn:go_back command to socket" do
+    test "adds go_back command to socket assigns" do
       socket = %Phoenix.LiveView.Socket{assigns: %{}, private: %{}}
 
       result_socket = LiveReactNative.RN.go_back(socket)
 
-      assert result_socket.private[:rn_commands] == [
-        %{type: "rn:go_back", payload: %{}}
+      assert result_socket.assigns[:__rn_commands__] == [
+        {"go_back", %{}}
       ]
     end
 
@@ -449,20 +449,20 @@ defmodule LiveReactNative.RNTest do
         |> LiveReactNative.RN.navigate("DetailsScreen")
         |> LiveReactNative.RN.go_back()
 
-      assert length(result_socket.private[:rn_commands]) == 2
-      assert Enum.at(result_socket.private[:rn_commands], 0)[:type] == "rn:navigate"
-      assert Enum.at(result_socket.private[:rn_commands], 1)[:type] == "rn:go_back"
+      assert length(result_socket.assigns[:__rn_commands__]) == 2
+      assert Enum.at(result_socket.assigns[:__rn_commands__], 0) == {"navigate", %{screen: "DetailsScreen", params: %{}}}
+      assert Enum.at(result_socket.assigns[:__rn_commands__], 1) == {"go_back", %{}}
     end
   end
 
   describe "RN.reset_stack/2" do
-    test "adds rn:reset_stack command to socket" do
+    test "adds reset_stack command to socket assigns" do
       socket = %Phoenix.LiveView.Socket{assigns: %{}, private: %{}}
 
       result_socket = LiveReactNative.RN.reset_stack(socket, "HomeScreen")
 
-      assert result_socket.private[:rn_commands] == [
-        %{type: "rn:reset_stack", payload: %{screen: "HomeScreen"}}
+      assert result_socket.assigns[:__rn_commands__] == [
+        {"reset_stack", %{screen: "HomeScreen"}}
       ]
     end
 
@@ -471,19 +471,19 @@ defmodule LiveReactNative.RNTest do
 
       result_socket = LiveReactNative.RN.reset_stack(socket, "LoginScreen")
 
-      expected_command = %{type: "rn:reset_stack", payload: %{screen: "LoginScreen"}}
-      assert result_socket.private[:rn_commands] == [expected_command]
+      expected_command = {"reset_stack", %{screen: "LoginScreen"}}
+      assert result_socket.assigns[:__rn_commands__] == [expected_command]
     end
   end
 
   describe "RN.replace/3" do
-    test "adds rn:replace command to socket" do
+    test "adds replace command to socket assigns" do
       socket = %Phoenix.LiveView.Socket{assigns: %{}, private: %{}}
 
       result_socket = LiveReactNative.RN.replace(socket, "NewScreen", %{data: "test"})
 
-      assert result_socket.private[:rn_commands] == [
-        %{type: "rn:replace", payload: %{screen: "NewScreen", params: %{data: "test"}}}
+      assert result_socket.assigns[:__rn_commands__] == [
+        {"replace", %{screen: "NewScreen", params: %{data: "test"}}}
       ]
     end
 
@@ -492,8 +492,8 @@ defmodule LiveReactNative.RNTest do
 
       result_socket = LiveReactNative.RN.replace(socket, "ReplacementScreen")
 
-      expected_command = %{type: "rn:replace", payload: %{screen: "ReplacementScreen", params: %{}}}
-      assert result_socket.private[:rn_commands] == [expected_command]
+      expected_command = {"replace", %{screen: "ReplacementScreen", params: %{}}}
+      assert result_socket.assigns[:__rn_commands__] == [expected_command]
     end
   end
 
@@ -506,17 +506,18 @@ defmodule LiveReactNative.RNTest do
         |> LiveReactNative.RN.haptic(%{type: "medium"})
         |> LiveReactNative.RN.go_back()
 
-      commands = result_socket.private[:rn_commands]
+      commands = result_socket.assigns[:__rn_commands__]
 
-      # All commands should have type and payload
-      assert Enum.all?(commands, fn cmd ->
-        Map.has_key?(cmd, :type) && Map.has_key?(cmd, :payload)
+      # All commands should be tuples with command name and payload
+      assert Enum.all?(commands, fn
+        {command, payload} when is_binary(command) and is_map(payload) -> true
+        _ -> false
       end)
 
       # Commands should be in order
-      assert Enum.at(commands, 0)[:type] == "rn:navigate"
-      assert Enum.at(commands, 1)[:type] == "rn:haptic"
-      assert Enum.at(commands, 2)[:type] == "rn:go_back"
+      assert Enum.at(commands, 0) == {"navigate", %{screen: "Screen1", params: %{id: 1}}}
+      assert Enum.at(commands, 1) == {"haptic", %{type: "medium"}}
+      assert Enum.at(commands, 2) == {"go_back", %{}}
     end
 
     test "commands are JSON serializable" do
@@ -530,14 +531,21 @@ defmodule LiveReactNative.RNTest do
         map: %{nested: "value"}
       })
 
-      commands = result_socket.private[:rn_commands]
+      commands = result_socket.assigns[:__rn_commands__]
 
       # Should be able to encode/decode as JSON
-      encoded = Jason.encode!(commands)
+      # Convert tuples to maps for JSON serialization
+      serializable_commands = Enum.map(commands, fn {cmd, payload} ->
+        %{command: cmd, payload: payload}
+      end)
+
+      encoded = Jason.encode!(serializable_commands)
       decoded = Jason.decode!(encoded)
 
       assert is_list(decoded)
       assert length(decoded) == 1
+      assert List.first(decoded)["command"] == "navigate"
+      assert List.first(decoded)["payload"]["screen"] == "TestScreen"
     end
   end
 end
